@@ -75,6 +75,7 @@ def main():
     parser.add_argument('--fork', action='store_true', help='仅举升: LOAD+UNLOAD')
     parser.add_argument('--single', nargs=2, metavar=('LOC', 'OP'), help='单步: --single Loc-2 LOAD')
     parser.add_argument('--wait', type=int, default=120, help='最大等待秒数 (默认120)')
+    parser.add_argument('--watch', action='store_true', help='持续监控车辆状态 (不发单)')
     parser.add_argument('--vehicle', type=str, default='AGV-001', help='车辆名')
     parser.add_argument('--url', type=str, default='http://127.0.0.1:55200', help='Kernel URL')
     args = parser.parse_args()
@@ -98,6 +99,40 @@ def main():
         preset = '完整流程 (默认)'
 
     order_name = f"kc-test-{datetime.now().strftime('%H%M%S')}"
+
+    # ── Watch mode ──
+    if args.watch:
+        print("=" * 55)
+        print(f"  车辆监控 {args.vehicle}")
+        print(f"  {c('Ctrl+C 退出', 'G')}")
+        print("=" * 55)
+        print("  等待状态变化...")
+        last = {}
+        counter = 0
+        try:
+            while True:
+                counter += 1
+                if counter % 15 == 1:
+                    print(f"  .", end='', flush=True)  # heartbeat
+                v = api_get(f"/v1/vehicles/{args.vehicle}")
+                if v:
+                    state = v.get('state', '?')
+                    pos = v.get('currentPosition', '?')
+                    px = v.get('precisePosition', {})
+                    en = v.get('energyLevel', '?')
+                    il = v.get('integrationLevel', '?')
+                    key = f"{state}|{pos}|{px.get('x',0)},{px.get('y',0)}"
+                    if key != last.get('key'):
+                        elapsed = f"+{int(time.time() - last.get('ts', time.time()))}s" if last else ''
+                        icon = {'IDLE': '○', 'EXECUTING': '●', 'CHARGING': '◇', 'ERROR': '✕', 'UNKNOWN': '?'}.get(state, '?')
+                        print(f"  {time.strftime('%H:%M:%S')} {elapsed:>5s} {icon} {state:12s} "
+                              f"pos={pos} px=({px.get('x',0)},{px.get('y',0)}) "
+                              f"bat={en}% int={il.split('_')[-1] if '_' in il else il}")
+                        last = {'key': key, 'ts': time.time()}
+                time.sleep(2)
+        except KeyboardInterrupt:
+            print(f"  [退出]")
+        return
 
     print("=" * 55)
     print(f"  openTCS 端到端测试")
