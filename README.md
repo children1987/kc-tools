@@ -148,3 +148,31 @@ python kc-var-sim.py --port 17805      # 指定端口
 配合验证：`python kc-inspect.py --ip 127.0.0.1 --full`
 
 > 注意：需先关闭 17804 端口的 kc-simulator，避免端口冲突。
+
+---
+
+## kc-e2e-test.py — 适配器集成测试
+
+用 kc-var-sim 模拟控制器，完整验证 Kernel + Adapter 端到端流程。
+
+```bash
+python kc-e2e-test.py                     # 全部测试
+python kc-e2e-test.py --test nop          # 仅导航
+python kc-e2e-test.py --test fork         # 仅举升
+python kc-e2e-test.py --test full         # 完整流程
+python kc-e2e-test.py --timeout 180       # 超时 180s
+```
+
+前提：kc-var-sim + Kernel 已启动，模型为模拟器模式。
+
+---
+
+## kc-diag.py — Kernel 状态诊断
+
+扫描日志和 REST API，检测扫单线程、适配器连接、订单积压等异常。
+
+```bash
+python kc-diag.py                      # 全诊断
+python kc-diag.py --watch              # 持续监控 (10秒刷新)
+python kc-diag.py --sweep-only         # 仅扫单诊断
+```
