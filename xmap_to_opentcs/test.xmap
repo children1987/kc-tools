@@ -1,0 +1,102 @@
+<MAP>
+    <header type="" name="newNav" resolution="0.020" reflector_diameter="0.075000" colum="0" row="0" distance="0.000000" map_line_speed="0.000000" map_angle_speed="0.000000" map_adjust_line_speed="0.100000" map_adjust_angle_speed="0.100000" map_version="22" longitude="0.000000000000" latitude="0.000000000000" compress="0.000000000000" nav_plan_strategy="0" support_type="" uuid="">
+        <min_pos x="-16.498558000000003" y="-20.607515000000035"></min_pos>
+        <max_pos x="1000" y="1000"></max_pos>
+    </header>
+    <path_template id="2" name="系统初始路径点模板" template_type="point" is_default="true">
+        <property name="need_spin_arrival_goal" enable="0" value="false"></property>
+        <property name="need_spin_arrival_goal_full" enable="0" value="false"></property>
+        <property name="is_station" enable="0" value="false"></property>
+        <property name="odom_loc_at_recog_point" enable="0" value="false"></property>
+        <property name="readjustment" enable="0" value="false"></property>
+        <property name="is_flexible_to_point" enable="0" value="false"></property>
+        <property name="reflective_rejust" enable="0" value="false"></property>
+        <property name="fork_lift_strategy" enable="0" value="0"></property>
+        <property name="is_unavoid_point" enable="0" value="false"></property>
+        <property name="is_unrotate_point" enable="0" value="false"></property>
+        <property name="distance_precision" enable="1" value="0.1"></property>
+        <property name="angle_precision" enable="1" value="5"></property>
+        <property name="walk_distance_precision" enable="1" value="0.01"></property>
+        <property name="walk_angle_precision" enable="1" value="0.5"></property>
+    </path_template>
+    <path_template id="1" name="系统初始路径模板" template_type="line" is_default="true">
+        <property name="vel_line_empty" enable="1" value="0.4"></property>
+        <property name="vel_line_full" enable="1" value="0.1"></property>
+        <property name="stop_dist_empty" enable="0" value="0.005"></property>
+        <property name="stop_dist_full" enable="0" value="0.01"></property>
+        <property name="need_request" enable="1" value="true"></property>
+        <property name="min_look_ahead_distance" enable="0" value="0.3"></property>
+        <property name="laser_position_strategy" enable="0" value="0"></property>
+        <property name="switch_to_odom_loc" enable="0" value="false"></property>
+        <property name="driving_attitude_empty" enable="0" value="0"></property>
+        <property name="driving_attitude_full" enable="0" value="1"></property>
+        <property name="nav_control_way" enable="0" value="0"></property>
+        <property name="path_cost" enable="0" value="1"></property>
+        <property name="suboptimal_ratio" enable="0" value="0.0"></property>
+        <property name="is_unavoid_path" enable="0" value="false"></property>
+        <property name="distance_precision" enable="1" value="0.1"></property>
+        <property name="angle_precision" enable="1" value="5"></property>
+        <property name="walk_distance_precision" enable="0" value="0.01"></property>
+        <property name="walk_angle_precision" enable="0" value="0.5"></property>
+    </path_template>
+    <advanced_point class_name="LandMark" instance_name="" angle="0" id="1" laseravoiding_area_id="0" obs_enable="0" Gyro="0" need_adjust="0" adjust_type="roll_back" navigation_laser="1" navigation_mag="0" navigation_qrcode="0" navigation_gnss="0" navigation_qrstrip="0" qr_id="0" enable_forbidden_direction="0" forbidden_direction="0.000000" allow_revolve="1" leave_point="0" enter_point="0" enable_spin_direction="" spin_direction="both" spin_vel="0.000000" tag_coord_spin="0.000000" x_deviation="0" y_deviation="0" angle_adjust="0" angle_adjust_enable="0" is_work_point="0" work_desc="" path_template_id="2" enable_rotate_vel="0" rotate_vel="0.000000" distance_precision="" theta_precision="" is_unrotate_point="" is_unavoid_point="" support_type="">
+        <original_path></original_path>
+        <pos x="-4.888219451292729" y="-12.827974107086018"></pos>
+    </advanced_point>
+    <advanced_point class_name="LandMark" instance_name="" angle="0" id="2" laseravoiding_area_id="0" obs_enable="0" Gyro="0" need_adjust="0" adjust_type="roll_back" navigation_laser="1" navigation_mag="0" navigation_qrcode="0" navigation_gnss="0" navigation_qrstrip="0" qr_id="0" enable_forbidden_direction="0" forbidden_direction="0.000000" allow_revolve="1" leave_point="0" enter_point="0" enable_spin_direction="" spin_direction="both" spin_vel="0.000000" tag_coord_spin="0.000000" x_deviation="0" y_deviation="0" angle_adjust="0" angle_adjust_enable="0" is_work_point="0" work_desc="" path_template_id="2" enable_rotate_vel="0" rotate_vel="0.000000" distance_precision="" theta_precision="" is_unrotate_point="" is_unavoid_point="" support_type="">
+        <original_path></original_path>
+        <pos x="-4.888219451292729" y="-6.428413474428517"></pos>
+    </advanced_point>
+    <advanced_point class_name="LandMark" instance_name="" angle="0" id="3" laseravoiding_area_id="0" obs_enable="0" Gyro="0" need_adjust="0" adjust_type="roll_back" navigation_laser="1" navigation_mag="0" navigation_qrcode="0" navigation_gnss="0" navigation_qrstrip="0" qr_id="0" enable_forbidden_direction="0" forbidden_direction="0.000000" allow_revolve="1" leave_point="0" enter_point="0" enable_spin_direction="" spin_direction="both" spin_vel="0.000000" tag_coord_spin="0.000000" x_deviation="0" y_deviation="0" angle_adjust="0" angle_adjust_enable="0" is_work_point="0" work_desc="" path_template_id="2" enable_rotate_vel="0" rotate_vel="0.000000" distance_precision="" theta_precision="" is_unrotate_point="" is_unavoid_point="" support_type="">
+        <original_path></original_path>
+        <pos x="-2.1623542985850306" y="-6.428413474428517"></pos>
+    </advanced_point>
+    <advanced_curve class_name="" instance_name="" is_forbidden="0" user_id="" secondary_id="1-1" id="1" support_type="" curve_type="straight_line" radian="0" turn_angle="0" is_trafic="0" outdistance="0.000000" navigate_way="0" laseravoiding="0" RoadWidth="1.2" start_series_way="-1" end_series_way="-1" start_control_distance="1" end_control_distance="1" obs_enable="0" laseravoiding_area_id="0" set_value_qrstrip="0" start_strip_data="0" end_strip_data="0" y_offset_value_qr="" set_value_y_offset_qrstrip="" Direction="backward" line_velocity="0.000000" angle_velocity="0.000000" is_navi_fix_angle="0" nav_fix_angle="0.000000" detour="0" detour_offset="-1.000000" effective_condition="0" path_template_id="1" xmlns:is_="is_" is_:suboptimal_path="" theta_precision="" turn_radius="">
+        <start_pos class_name="LandMark" instance_name="" angle="0" id="2" laseravoiding_area_id="0" obs_enable="0" Gyro="0" need_adjust="0" adjust_type="roll_back" navigation_laser="1" navigation_mag="0" navigation_qrcode="0" navigation_gnss="0" navigation_qrstrip="0" qr_id="0" enable_forbidden_direction="0" forbidden_direction="0.000000" allow_revolve="1" leave_point="0" enter_point="0" enable_spin_direction="" spin_direction="both" spin_vel="0.000000" tag_coord_spin="0.000000" x_deviation="0" y_deviation="0" angle_adjust="0" angle_adjust_enable="0" is_work_point="0" work_desc="" path_template_id="2" enable_rotate_vel="0" rotate_vel="0.000000" distance_precision="" theta_precision="" is_unrotate_point="" is_unavoid_point="" support_type="">
+            <original_path></original_path>
+            <pos x="-4.888219451292729" y="-6.428413474428517"></pos>
+        </start_pos>
+        <end_pos class_name="LandMark" instance_name="" angle="0" id="1" laseravoiding_area_id="0" obs_enable="0" Gyro="0" need_adjust="0" adjust_type="roll_back" navigation_laser="1" navigation_mag="0" navigation_qrcode="0" navigation_gnss="0" navigation_qrstrip="0" qr_id="0" enable_forbidden_direction="0" forbidden_direction="0.000000" allow_revolve="1" leave_point="0" enter_point="0" enable_spin_direction="" spin_direction="both" spin_vel="0.000000" tag_coord_spin="0.000000" x_deviation="0" y_deviation="0" angle_adjust="0" angle_adjust_enable="0" is_work_point="0" work_desc="" path_template_id="2" enable_rotate_vel="0" rotate_vel="0.000000" distance_precision="" theta_precision="" is_unrotate_point="" is_unavoid_point="" support_type="">
+            <original_path></original_path>
+            <pos x="-4.888219451292729" y="-12.827974107086018"></pos>
+        </end_pos>
+        <control1_pos x="-4.888219451292729" y="-8.561600351981017"></control1_pos>
+        <control2_pos x="-4.888219451292729" y="-10.694787229533517"></control2_pos>
+    </advanced_curve>
+    <advanced_curve class_name="" instance_name="" is_forbidden="0" user_id="" secondary_id="1-2" id="1" support_type="" curve_type="straight_line" radian="0" turn_angle="0" is_trafic="0" outdistance="0.000000" navigate_way="0" laseravoiding="0" RoadWidth="1.2" start_series_way="-1" end_series_way="-1" start_control_distance="1" end_control_distance="1" obs_enable="0" laseravoiding_area_id="0" set_value_qrstrip="0" start_strip_data="0" end_strip_data="0" y_offset_value_qr="" set_value_y_offset_qrstrip="" Direction="forward" line_velocity="0.000000" angle_velocity="0.000000" is_navi_fix_angle="0" nav_fix_angle="0.000000" detour="0" detour_offset="-1.000000" effective_condition="0" path_template_id="1" xmlns:is_="is_" is_:suboptimal_path="" theta_precision="" turn_radius="">
+        <start_pos class_name="LandMark" instance_name="" angle="0" id="1" laseravoiding_area_id="0" obs_enable="0" Gyro="0" need_adjust="0" adjust_type="roll_back" navigation_laser="1" navigation_mag="0" navigation_qrcode="0" navigation_gnss="0" navigation_qrstrip="0" qr_id="0" enable_forbidden_direction="0" forbidden_direction="0.000000" allow_revolve="1" leave_point="0" enter_point="0" enable_spin_direction="" spin_direction="both" spin_vel="0.000000" tag_coord_spin="0.000000" x_deviation="0" y_deviation="0" angle_adjust="0" angle_adjust_enable="0" is_work_point="0" work_desc="" path_template_id="2" enable_rotate_vel="0" rotate_vel="0.000000" distance_precision="" theta_precision="" is_unrotate_point="" is_unavoid_point="" support_type="">
+            <original_path></original_path>
+            <pos x="-4.888219451292729" y="-12.827974107086018"></pos>
+        </start_pos>
+        <end_pos class_name="LandMark" instance_name="" angle="0" id="2" laseravoiding_area_id="0" obs_enable="0" Gyro="0" need_adjust="0" adjust_type="roll_back" navigation_laser="1" navigation_mag="0" navigation_qrcode="0" navigation_gnss="0" navigation_qrstrip="0" qr_id="0" enable_forbidden_direction="0" forbidden_direction="0.000000" allow_revolve="1" leave_point="0" enter_point="0" enable_spin_direction="" spin_direction="both" spin_vel="0.000000" tag_coord_spin="0.000000" x_deviation="0" y_deviation="0" angle_adjust="0" angle_adjust_enable="0" is_work_point="0" work_desc="" path_template_id="2" enable_rotate_vel="0" rotate_vel="0.000000" distance_precision="" theta_precision="" is_unrotate_point="" is_unavoid_point="" support_type="">
+            <original_path></original_path>
+            <pos x="-4.888219451292729" y="-6.428413474428517"></pos>
+        </end_pos>
+        <control1_pos x="-4.888219451292729" y="-10.694787229533517"></control1_pos>
+        <control2_pos x="-4.888219451292729" y="-8.561600351981017"></control2_pos>
+    </advanced_curve>
+    <advanced_curve class_name="" instance_name="" is_forbidden="0" user_id="" secondary_id="2-1" id="2" support_type="" curve_type="straight_line" radian="0" turn_angle="0" is_trafic="0" outdistance="0.000000" navigate_way="0" laseravoiding="0" RoadWidth="1.2" start_series_way="-1" end_series_way="-1" start_control_distance="1" end_control_distance="1" obs_enable="0" laseravoiding_area_id="0" set_value_qrstrip="0" start_strip_data="0" end_strip_data="0" y_offset_value_qr="" set_value_y_offset_qrstrip="" Direction="forward" line_velocity="0.000000" angle_velocity="0.000000" is_navi_fix_angle="1" nav_fix_angle="1.5707963267948966" detour="0" detour_offset="-1.000000" effective_condition="0" path_template_id="1" xmlns:is_="is_" is_:suboptimal_path="" theta_precision="" turn_radius="">
+        <start_pos class_name="LandMark" instance_name="" angle="0" id="2" laseravoiding_area_id="0" obs_enable="0" Gyro="0" need_adjust="0" adjust_type="roll_back" navigation_laser="1" navigation_mag="0" navigation_qrcode="0" navigation_gnss="0" navigation_qrstrip="0" qr_id="0" enable_forbidden_direction="0" forbidden_direction="0.000000" allow_revolve="1" leave_point="0" enter_point="0" enable_spin_direction="" spin_direction="both" spin_vel="0.000000" tag_coord_spin="0.000000" x_deviation="0" y_deviation="0" angle_adjust="0" angle_adjust_enable="0" is_work_point="0" work_desc="" path_template_id="2" enable_rotate_vel="0" rotate_vel="0.000000" distance_precision="" theta_precision="" is_unrotate_point="" is_unavoid_point="" support_type="">
+            <original_path></original_path>
+            <pos x="-4.888219451292729" y="-6.428413474428517"></pos>
+        </start_pos>
+        <end_pos class_name="LandMark" instance_name="" angle="0" id="3" laseravoiding_area_id="0" obs_enable="0" Gyro="0" need_adjust="0" adjust_type="roll_back" navigation_laser="1" navigation_mag="0" navigation_qrcode="0" navigation_gnss="0" navigation_qrstrip="0" qr_id="0" enable_forbidden_direction="0" forbidden_direction="0.000000" allow_revolve="1" leave_point="0" enter_point="0" enable_spin_direction="" spin_direction="both" spin_vel="0.000000" tag_coord_spin="0.000000" x_deviation="0" y_deviation="0" angle_adjust="0" angle_adjust_enable="0" is_work_point="0" work_desc="" path_template_id="2" enable_rotate_vel="0" rotate_vel="0.000000" distance_precision="" theta_precision="" is_unrotate_point="" is_unavoid_point="" support_type="">
+            <original_path></original_path>
+            <pos x="-2.1623542985850306" y="-6.428413474428517"></pos>
+        </end_pos>
+        <control1_pos x="-3.9795977337234962" y="-6.428413474428517"></control1_pos>
+        <control2_pos x="-3.0709760161542636" y="-6.428413474428517"></control2_pos>
+    </advanced_curve>
+    <advanced_curve class_name="" instance_name="" is_forbidden="0" user_id="" secondary_id="2-2" id="2" support_type="" curve_type="straight_line" radian="0" turn_angle="0" is_trafic="0" outdistance="0.000000" navigate_way="0" laseravoiding="0" RoadWidth="1.2" start_series_way="-1" end_series_way="-1" start_control_distance="1" end_control_distance="1" obs_enable="0" laseravoiding_area_id="0" set_value_qrstrip="0" start_strip_data="0" end_strip_data="0" y_offset_value_qr="" set_value_y_offset_qrstrip="" Direction="forward" line_velocity="0.000000" angle_velocity="0.000000" is_navi_fix_angle="0" nav_fix_angle="0.000000" detour="0" detour_offset="-1.000000" effective_condition="0" path_template_id="1" xmlns:is_="is_" is_:suboptimal_path="" theta_precision="" turn_radius="">
+        <start_pos class_name="LandMark" instance_name="" angle="0" id="3" laseravoiding_area_id="0" obs_enable="0" Gyro="0" need_adjust="0" adjust_type="roll_back" navigation_laser="1" navigation_mag="0" navigation_qrcode="0" navigation_gnss="0" navigation_qrstrip="0" qr_id="0" enable_forbidden_direction="0" forbidden_direction="0.000000" allow_revolve="1" leave_point="0" enter_point="0" enable_spin_direction="" spin_direction="both" spin_vel="0.000000" tag_coord_spin="0.000000" x_deviation="0" y_deviation="0" angle_adjust="0" angle_adjust_enable="0" is_work_point="0" work_desc="" path_template_id="2" enable_rotate_vel="0" rotate_vel="0.000000" distance_precision="" theta_precision="" is_unrotate_point="" is_unavoid_point="" support_type="">
+            <original_path></original_path>
+            <pos x="-2.1623542985850306" y="-6.428413474428517"></pos>
+        </start_pos>
+        <end_pos class_name="LandMark" instance_name="" angle="0" id="2" laseravoiding_area_id="0" obs_enable="0" Gyro="0" need_adjust="0" adjust_type="roll_back" navigation_laser="1" navigation_mag="0" navigation_qrcode="0" navigation_gnss="0" navigation_qrstrip="0" qr_id="0" enable_forbidden_direction="0" forbidden_direction="0.000000" allow_revolve="1" leave_point="0" enter_point="0" enable_spin_direction="" spin_direction="both" spin_vel="0.000000" tag_coord_spin="0.000000" x_deviation="0" y_deviation="0" angle_adjust="0" angle_adjust_enable="0" is_work_point="0" work_desc="" path_template_id="2" enable_rotate_vel="0" rotate_vel="0.000000" distance_precision="" theta_precision="" is_unrotate_point="" is_unavoid_point="" support_type="">
+            <original_path></original_path>
+            <pos x="-4.888219451292729" y="-6.428413474428517"></pos>
+        </end_pos>
+        <control1_pos x="-3.0709760161542636" y="-6.428413474428517"></control1_pos>
+        <control2_pos x="-3.9795977337234962" y="-6.428413474428517"></control2_pos>
+    </advanced_curve>
+</MAP>
