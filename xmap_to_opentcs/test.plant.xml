@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<model version="7.0.0" name="KC_newNav">
+    <point name="KC-1" positionX="-4888" positionY="-12828" positionZ="0" vehicleOrientationAngle="NaN" type="HALT_POSITION">
+        <maxVehicleBoundingBox length="1000" width="1000" height="1000" referenceOffsetX="0" referenceOffsetY="0" />
+        <outgoingPath name="KC-1 --- KC-2" />
+        <property name="kc:markerId" value="1" />
+        <property name="kc:className" value="LandMark" />
+        <pointLayout labelOffsetX="-10" labelOffsetY="-20" layerId="0" />
+    </point>
+    <point name="KC-2" positionX="-4888" positionY="-6428" positionZ="0" vehicleOrientationAngle="NaN" type="HALT_POSITION">
+        <maxVehicleBoundingBox length="1000" width="1000" height="1000" referenceOffsetX="0" referenceOffsetY="0" />
+        <outgoingPath name="KC-2 --- KC-1" />
+        <outgoingPath name="KC-2 --- KC-3" />
+        <property name="kc:markerId" value="2" />
+        <property name="kc:className" value="LandMark" />
+        <pointLayout labelOffsetX="-10" labelOffsetY="-20" layerId="0" />
+    </point>
+    <point name="KC-3" positionX="-2162" positionY="-6428" positionZ="0" vehicleOrientationAngle="90.0" type="HALT_POSITION">
+        <maxVehicleBoundingBox length="1000" width="1000" height="1000" referenceOffsetX="0" referenceOffsetY="0" />
+        <outgoingPath name="KC-3 --- KC-2" />
+        <property name="kc:markerId" value="3" />
+        <property name="kc:className" value="LandMark" />
+        <pointLayout labelOffsetX="-10" labelOffsetY="-20" layerId="0" />
+    </point>
+    <path name="KC-2 --- KC-1" sourcePoint="KC-2" destinationPoint="KC-1" length="6400" maxVelocity="1000" maxReverseVelocity="0" locked="false">
+        <property name="kc:secondaryId" value="1-1" />
+        <property name="kc:direction" value="backward" />
+        <pathLayout connectionType="DIRECT" layerId="0" />
+    </path>
+    <path name="KC-1 --- KC-2" sourcePoint="KC-1" destinationPoint="KC-2" length="6400" maxVelocity="1000" maxReverseVelocity="0" locked="false">
+        <property name="kc:secondaryId" value="1-2" />
+        <property name="kc:direction" value="forward" />
+        <pathLayout connectionType="DIRECT" layerId="0" />
+    </path>
+    <path name="KC-2 --- KC-3" sourcePoint="KC-2" destinationPoint="KC-3" length="2726" maxVelocity="1000" maxReverseVelocity="0" locked="false">
+        <property name="kc:secondaryId" value="2-1" />
+        <property name="kc:direction" value="forward" />
+        <property name="kc:navFixAngleDeg" value="90.0" />
+        <pathLayout connectionType="DIRECT" layerId="0" />
+    </path>
+    <path name="KC-3 --- KC-2" sourcePoint="KC-3" destinationPoint="KC-2" length="2726" maxVelocity="1000" maxReverseVelocity="0" locked="false">
+        <property name="kc:secondaryId" value="2-2" />
+        <property name="kc:direction" value="forward" />
+        <pathLayout connectionType="DIRECT" layerId="0" />
+    </path>
+    <visualLayout name="VLayout" scaleX="50.0" scaleY="50.0">
+        <layer id="0" ordinal="0" visible="true" name="Default layer" groupId="0" />
+        <layerGroup id="0" name="Default layer group" visible="true" />
+    </visualLayout>
+</model>
