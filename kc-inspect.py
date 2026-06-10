@@ -356,8 +356,10 @@ def main():
     if args.full or args.vars:
         print("\n[变量检查]")
         vars_to_check = [
-            ('Screen.ForkUp', '举升控制'),
-            ('Screen.ForkDown', '下降控制'),
+            ('Forkup', '举升控制'),
+            ('Forkdown', '下降控制'),
+            ('Forkforward', '前移控制'),
+            ('Forkback', '后移控制'),
             ('Button.TopLimit', '上升限位'),
             ('Button.DownLimit', '下降限位'),
         ]
