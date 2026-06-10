@@ -25,7 +25,7 @@ AUTH = bytes([0xed, 0x01, 0xe9, 0xd2, 0xb8, 0xa2, 0x6b, 0x4c,
 VARS = {
     'up':      'Forkup',
     'down':    'Forkdown',
-    'forward': 'Forkforword',  # 注意: 控制器端拼写
+    'forward': 'Forkforward',
     'back':    'Forkback',
 }
 DEFAULT_DURATION = 3.0
