@@ -57,13 +57,13 @@ TS  = {0:'NONE', 1:'WAIT', 2:'GOING', 3:'PAUSE', 4:'DONE', 5:'FAIL', 6:'EXIT'}
 # ── Presets ──
 PRESETS = {
     'full': [
-        ('Loc-2', 'NOP'), ('Loc-2', 'LOAD'), ('Loc-2', 'UNLOAD'), ('Loc-1', 'NOP')
+        ('Loc-26', 'NOP'), ('Loc-26', 'LOAD'), ('Loc-26', 'UNLOAD'), ('Loc-00', 'NOP')
     ],
     'nop': [
-        ('Loc-2', 'NOP'), ('Loc-1', 'NOP')
+        ('Loc-26', 'NOP'), ('Loc-00', 'NOP')
     ],
     'fork': [
-        ('Loc-2', 'LOAD'), ('Loc-2', 'UNLOAD')
+        ('Loc-26', 'LOAD'), ('Loc-26', 'UNLOAD')
     ],
 }
 
