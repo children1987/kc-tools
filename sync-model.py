@@ -22,8 +22,10 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # ── 配置 ──
-DEFAULT_MODEL = Path(r"C:\Users\ficog\Desktop\opentcs-7.2.1-bin\opentcs-modeleditor\data\zhongwu.xml")
-DEFAULT_KERNEL_MODEL = Path(r"C:\Users\ficog\Desktop\opentcs-7.2.1-bin\opentcs-kernel\data\model.xml")
+SCRIPT_DIR = Path(__file__).resolve().parent
+WORKSPACE = SCRIPT_DIR.parent
+DEFAULT_MODEL = WORKSPACE / "opentcs-7.2.1-bin/opentcs-modeleditor/data/zhongwu.xml"
+DEFAULT_KERNEL_MODEL = WORKSPACE / "opentcs-7.2.1-bin/opentcs-kernel/data/model.xml"
 DEFAULT_AUTH = bytes([0xed, 0x01, 0xe9, 0xd2, 0xb8, 0xa2, 0x6b, 0x4c,
                        0x85, 0x72, 0x77, 0xf2, 0xb2, 0xcb, 0x61, 0xb4])
 SIM_AUTH = b'KC-SIMULATOR-01'

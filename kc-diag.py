@@ -15,9 +15,12 @@ import time
 import json
 import urllib.request
 import argparse
+from pathlib import Path
 from datetime import datetime, timedelta
 
-LOG_FILE = r"C:\Users\ficog\Desktop\opentcs-7.2.1-bin\opentcs-kernel\log\opentcs-kernel.0.log"
+SCRIPT_DIR = Path(__file__).resolve().parent
+WORKSPACE = SCRIPT_DIR.parent
+LOG_FILE = WORKSPACE / "opentcs-7.2.1-bin/opentcs-kernel/log/opentcs-kernel.0.log"
 KERNEL = "http://127.0.0.1:55200"
 
 def G(s): return f"\033[92m{s}\033[0m"

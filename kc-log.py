@@ -17,8 +17,11 @@ import sys
 import re
 import time
 import argparse
+from pathlib import Path
 
-LOG_FILE = r"C:\Users\ficog\Desktop\opentcs-7.2.1-bin\opentcs-kernel\log\opentcs-kernel.0.log"
+SCRIPT_DIR = Path(__file__).resolve().parent
+WORKSPACE = SCRIPT_DIR.parent
+LOG_FILE = WORKSPACE / "opentcs-7.2.1-bin/opentcs-kernel/log/opentcs-kernel.0.log"
 
 # ── Color ──
 def color(s, c):
