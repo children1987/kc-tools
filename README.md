@@ -147,7 +147,7 @@ python kc-var-sim.py --port 17805      # 指定端口
 
 配合验证：`python kc-inspect.py --ip 127.0.0.1 --full`
 
-> 注意：需先关闭 17804 端口的 kc-simulator，避免端口冲突。
+> 注意：需先关闭 17804 端口的 simulators/kc-simulator，避免端口冲突。
 
 ---
 
