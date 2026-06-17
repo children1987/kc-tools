@@ -2,12 +2,9 @@
 """
 sync-model.py — 科聪模型同步工具
 从控制器获取当前坐标，自动更新 openTCS 模型文件 (zhongwu.xml)
-支持一键切换模拟器/实车模式。
 
 用法:
   python sync-model.py                          # 从控制器读取当前位置，设为点1
-  python sync-model.py --sim                    # 切换为模拟器模式 (127.0.0.1)
-  python sync-model.py --real                   # 切换为实车模式 (192.168.100.178)
   python sync-model.py --pt1 1000,2000          # 手动指定点1坐标(mm)
   python sync-model.py --pt2 3000,5000          # 手动指定点2坐标(mm)
   python sync-model.py --ip 192.168.1.100       # 指定控制器IP
@@ -28,7 +25,6 @@ DEFAULT_MODEL = WORKSPACE / "opentcs-7.2.1-bin/opentcs-modeleditor/data/zhongwu.
 DEFAULT_KERNEL_MODEL = WORKSPACE / "opentcs-7.2.1-bin/opentcs-kernel/data/model.xml"
 DEFAULT_AUTH = bytes([0xed, 0x01, 0xe9, 0xd2, 0xb8, 0xa2, 0x6b, 0x4c,
                        0x85, 0x72, 0x77, 0xf2, 0xb2, 0xcb, 0x61, 0xb4])
-SIM_AUTH = b'KC-SIMULATOR-01'
 NAV_PORT = 17804
 
 # ── 协议工具 ──
@@ -101,24 +97,6 @@ def update_path_length(root, path_name, length_mm):
         return True
     return False
 
-def set_vehicle_property(root, key, value):
-    vehicle = root.find('vehicle')
-    if vehicle is None:
-        return False
-    # Remove existing with same key
-    for prop in vehicle.findall('property'):
-        if prop.get('name') == key:
-            if value is None:
-                vehicle.remove(prop)
-            else:
-                prop.set('value', value)
-            return True
-    if value is not None:
-        prop = ET.SubElement(vehicle, 'property')
-        prop.set('name', key)
-        prop.set('value', value)
-    return True
-
 def calc_distance(x1, y1, x2, y2):
     return int(math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2))
 
@@ -129,8 +107,6 @@ def save_model(tree, path):
 # ── 主程序 ──
 def main():
     parser = argparse.ArgumentParser(description='科聪模型同步工具')
-    parser.add_argument('--sim', action='store_true', help='切换为模拟器模式')
-    parser.add_argument('--real', action='store_true', help='切换为实车模式')
     parser.add_argument('--ip', type=str, default='192.168.100.178', help='控制器IP (默认: 192.168.100.178)')
     parser.add_argument('--pt1', type=str, help='点1坐标, 格式: "x,y" (mm)')
     parser.add_argument('--pt2', type=str, help='点2坐标, 格式: "x,y" (mm)')
@@ -146,25 +122,6 @@ def main():
     print("=" * 55)
     print("  科聪模型同步工具")
     print("=" * 55)
-
-    # ── 模式切换 ──
-    if args.sim or args.real:
-        tree, root = load_model(model_path)
-        if args.sim:
-            print("\n[切换] 模拟器模式 (127.0.0.1)")
-            set_vehicle_property(root, 'kecong:navHost', '127.0.0.1')
-            set_vehicle_property(root, 'kecong:qrHost', '127.0.0.1')
-            set_vehicle_property(root, 'kecong:authCode', 'KC-SIMULATOR-01')
-        else:
-            print("\n[切换] 实车模式 (192.168.100.178/200)")
-            set_vehicle_property(root, 'kecong:navHost', '192.168.100.178')
-            set_vehicle_property(root, 'kecong:qrHost', '192.168.100.200')
-            set_vehicle_property(root, 'kecong:authCode', None)  # 删除,用默认二进制码
-        save_model(tree, model_path)
-        if kernel_path.exists():
-            save_model(tree, kernel_path)
-        print("\n[完成] 请重启 Kernel 使配置生效")
-        return
 
     # ── 两步采集模式 ──
     pending_file = model_path.parent / ".sync_pending.txt"
