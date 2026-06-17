@@ -5,20 +5,20 @@
 ## 快速开始
 
 ```bash
-python kc-tools/xmap_to_opentcs/xmap_to_opentcs.py <your_map.xmap>
+python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py <your_map.xmap>
 ```
 
 输出文件与输入同目录，后缀 `.plant.xml`：
 
 ```bash
-python kc-tools/xmap_to_opentcs/xmap_to_opentcs.py e:/maps/warehouse.xmap
+python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py e:/maps/warehouse.xmap
 # → e:/maps/warehouse.plant.xml
 ```
 
 指定输出路径：
 
 ```bash
-python kc-tools/xmap_to_opentcs/xmap_to_opentcs.py warehouse.xmap -o e:/opentcs/examples/warehouse.xml
+python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py warehouse.xmap -o e:/opentcs/examples/warehouse.xml
 ```
 
 ## 依赖
@@ -114,7 +114,7 @@ openTCS 7.0.0 Plant Model XML，可直接用 **Model Editor** 打开。
 ## 验证
 
 ```bash
-python -m pytest kc-tools/xmap_to_opentcs/test_xmap_converter.py -v
+python -m pytest tools/kc-tools/xmap_to_opentcs/test_xmap_converter.py -v
 ```
 
 ## 目录结构

@@ -20,7 +20,7 @@ from pathlib import Path
 
 # ── 配置 ──
 SCRIPT_DIR = Path(__file__).resolve().parent
-WORKSPACE = SCRIPT_DIR.parent
+WORKSPACE = SCRIPT_DIR.parent.parent
 DEFAULT_MODEL = WORKSPACE / "opentcs-7.2.1-bin/opentcs-modeleditor/data/zhongwu.xml"
 DEFAULT_KERNEL_MODEL = WORKSPACE / "opentcs-7.2.1-bin/opentcs-kernel/data/model.xml"
 DEFAULT_AUTH = bytes([0xed, 0x01, 0xe9, 0xd2, 0xb8, 0xa2, 0x6b, 0x4c,

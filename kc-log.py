@@ -20,7 +20,7 @@ import argparse
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-WORKSPACE = SCRIPT_DIR.parent
+WORKSPACE = SCRIPT_DIR.parent.parent
 LOG_FILE = WORKSPACE / "opentcs-7.2.1-bin/opentcs-kernel/log/opentcs-kernel.0.log"
 
 # ── Color ──

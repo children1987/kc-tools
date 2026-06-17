@@ -20,7 +20,7 @@ from pathlib import Path
 
 # ── 路径 ──
 SCRIPT_DIR = Path(__file__).resolve().parent
-WORKSPACE = SCRIPT_DIR.parent
+WORKSPACE = SCRIPT_DIR.parent.parent
 FORK_UDP_FILE = WORKSPACE / "projects" / "argentina-app" / "app" / "fork_udp.py"
 
 SIM_IP = "127.0.0.1"
