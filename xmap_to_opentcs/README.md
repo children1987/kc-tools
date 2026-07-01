@@ -2,23 +2,103 @@
 
 科聪 xmap 导航地图 → openTCS Plant Model XML 转换工具。
 
+**默认输出 Kernel 可直接使用的完整 model.xml**（含 vehicle、locationType、location），无需手动补充。
+
 ## 快速开始
 
 ```bash
 python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py <your_map.xmap>
 ```
 
-输出文件与输入同目录，后缀 `.plant.xml`：
+输出文件默认为输入同目录下的 `model.xml`：
 
 ```bash
 python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py e:/maps/warehouse.xmap
-# → e:/maps/warehouse.plant.xml
+# → e:/maps/model.xml  （完整 Kernel-ready 模型）
 ```
 
 指定输出路径：
 
 ```bash
-python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py warehouse.xmap -o e:/opentcs/examples/warehouse.xml
+python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py warehouse.xmap -o model.xml
+```
+
+仅生成导航拓扑（points + paths，不含 vehicle/location）：
+
+```bash
+python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py warehouse.xmap --no-vehicle
+```
+
+## CLI 选项
+
+### 车辆配置
+
+| 选项 | 默认值 | 说明 |
+|------|--------|------|
+| `--vehicle-name` | `AGV-001` | 车辆名称 |
+| `--nav-host` | `127.0.0.1` | 激光导航控制器 IP |
+| `--nav-port` | `17804` | 导航 UDP 端口 |
+| `--qr-host` | `127.0.0.1` | QR/磁导航控制器 IP |
+| `--qr-port` | `17800` | QR/变量 UDP 端口 |
+| `--auth-code` | `KC-SIMULATOR-01` | 协议认证码 |
+| `--auto-init` | (off) | 启用自动初始化（`--real` 时默认开启） |
+| `--real` | — | 实车控制器模式：`192.168.100.178/200` + 空认证码 + 自动初始化 |
+
+### 位置生成
+
+| 选项 | 默认值 | 说明 |
+|------|--------|------|
+| `--location-count N` | `1` | 生成 N 个 location，从第一个点开始 |
+| `--all-points-as-locations` | — | 为每个点生成一个 location |
+
+### 电量配置（可选）
+
+| 选项 | 可选值 | 说明 |
+|------|--------|------|
+| `--energy-source` | `PROTOCOL`, `READ_VAR`, `READ_MULTI_VAR` | 电量读取方式 |
+| `--energy-var-name` | string | READ_VAR / READ_MULTI_VAR 模式下的变量名 |
+| `--energy-var-offset` | int | READ_MULTI_VAR 模式下的字节偏移 |
+| `--energy-var-port` | `NAV`, `QR` | 变量读取使用的 UDP 端口 |
+| `--energy-config-path` | path | 电量配置 JSON 文件路径 |
+
+### 其他
+
+| 选项 | 说明 |
+|------|------|
+| `-o`, `--output` | 输出路径（默认：输入同目录下的 `model.xml`） |
+| `--no-vehicle` | 仅生成导航拓扑，不含 vehicle/location（用于手动编辑） |
+
+## 用法示例
+
+### 模拟器调试（默认）
+
+```bash
+# 默认就是模拟器模式，直接转换即可
+python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py argentina.xmap
+```
+
+生成的 model.xml 带 `kecong:navHost=127.0.0.1`、`kecong:authCode=KC-SIMULATOR-01`，配合 `kc-simulator` 使用。
+
+### 实车部署
+
+```bash
+# --real 一键切换到实车控制器默认配置
+python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py argentina.xmap --real
+```
+
+等价于手动指定：
+```bash
+python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py argentina.xmap \
+    --nav-host 192.168.100.178 --qr-host 192.168.100.200 \
+    --auth-code "" --auto-init
+```
+
+实车控制器 IP 和认证码最终请联系科聪技术支持确认。
+
+### 为所有点生成装卸货位置
+
+```bash
+python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py warehouse.xmap --all-points-as-locations
 ```
 
 ## 依赖
@@ -52,7 +132,7 @@ python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py warehouse.xmap -o e:/op
 
 ## 输出格式
 
-openTCS 7.0.0 Plant Model XML，可直接用 **Model Editor** 打开。
+openTCS 7.0.0 Plant Model XML，可直接用 **Model Editor** 打开，也可直接上传至 Kernel。
 
 ```xml
 <?xml version='1.0' encoding='UTF-8'?>
@@ -69,6 +149,28 @@ openTCS 7.0.0 Plant Model XML，可直接用 **Model Editor** 打开。
     <property name="kc:secondaryId" value="1-1"/>
     <property name="kc:direction" value="forward"/>
   </path>
+
+  <vehicle name="AGV-001" energyLevelCritical="0" ...>
+    <property name="kecong:navHost" value="127.0.0.1"/>
+    <property name="kecong:navPort" value="17804"/>
+    ...
+  </vehicle>
+
+  <locationType name="LType-0001">
+    <allowedOperation name="LOAD"/>
+    <allowedOperation name="UNLOAD"/>
+    <allowedOperation name="NOP"/>
+    <allowedOperation name="FORK_FWD"/>
+    <allowedOperation name="FORK_REV"/>
+  </locationType>
+
+  <location name="Loc-KC-1" positionX="0" positionY="0" ... type="LType-0001">
+    <link point="KC-1"/>
+  </location>
+
+  <visualLayout name="VLayout" scaleX="50.0" scaleY="50.0">
+    <property name="tcs:modelFileLastModified" value="2026-07-01T..."/>
+  </visualLayout>
 </model>
 ```
 
@@ -102,12 +204,11 @@ openTCS 7.0.0 Plant Model XML，可直接用 **Model Editor** 打开。
 
 ## 在 openTCS 中使用
 
-1. 打开 **Model Editor** → File → Load Model → 选择 `.plant.xml`
-2. 检查点和路径是否与科聪地图一致
-3. 手动补充（转换工具不生成）：
-   - `vehicle` 定义
-   - `location` / `locationType`（装卸货、充电站等）
-   - `locationLink`
+1. 直接转换：`python xmap_to_opentcs.py warehouse.xmap`
+2. 打开 **Model Editor** → File → Load Model → 选择 `model.xml` 检查拓扑
+3. 如需要，手动补充：
+   - `locationType` 中的额外操作（如 `RECHARGE`）
+   - 充电站 / 特殊工位的 `location`
 4. Upload model to kernel
 5. CommAdapter 收到 `MovementCommand` 时会读取 `kc:markerId` 下发 UDP 0x16 导航
 
@@ -122,8 +223,9 @@ python -m pytest tools/kc-tools/xmap_to_opentcs/test_xmap_converter.py -v
 ```
 xmap_to_opentcs/
 ├── xmap_to_opentcs.py       ← 转换工具本体
-├── test_xmap_converter.py   ← 自动化测试
+├── test_xmap_converter.py   ← 自动化测试（67 cases）
 ├── test.xmap                ← 测试用的科聪样例地图（3点4边）
+├── test.plant.xml           ← 测试期望输出
 ├── test.xmap转换示例.md      ← 详细的字段对照和转换文档
 └── README.md                ← 本文件
 ```

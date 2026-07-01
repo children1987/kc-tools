@@ -7094,8 +7094,32 @@
         <property name="kc:direction" value="forward" />
         <pathLayout connectionType="DIRECT" layerId="0" />
     </path>
+    <vehicle name="AGV-001" energyLevelCritical="0" energyLevelGood="80" energyLevelFullyRecharged="100" energyLevelSufficientlyRecharged="90" maxVelocity="1000" maxReverseVelocity="500" envelopeKey="">
+        <boundingBox length="1000" width="600" height="300" referenceOffsetX="0" referenceOffsetY="0" />
+        <property name="kecong:navHost" value="127.0.0.1" />
+        <property name="kecong:navPort" value="17804" />
+        <property name="kecong:pollInterval" value="100" />
+        <property name="kecong:qrHost" value="127.0.0.1" />
+        <property name="kecong:qrPort" value="17800" />
+        <property name="kecong:autoInit" value="false" />
+        <property name="kecong:authCode" value="KC-SIMULATOR-01" />
+        <vehicleLayout color="#FF0000" />
+    </vehicle>
+    <locationType name="LType-0001">
+        <allowedOperation name="LOAD" />
+        <allowedOperation name="UNLOAD" />
+        <allowedOperation name="NOP" />
+        <allowedOperation name="FORK_FWD" />
+        <allowedOperation name="FORK_REV" />
+        <locationTypeLayout locationRepresentation="NONE" />
+    </locationType>
+    <location name="Loc-KC-1" positionX="209" positionY="78" positionZ="0" locked="false" type="LType-0001">
+        <link point="KC-1" />
+        <locationLayout labelOffsetX="-10" labelOffsetY="-20" locationRepresentation="DEFAULT" layerId="0" />
+    </location>
     <visualLayout name="VLayout" scaleX="50.0" scaleY="50.0">
         <layer id="0" ordinal="0" visible="true" name="Default layer" groupId="0" />
         <layerGroup id="0" name="Default layer group" visible="true" />
     </visualLayout>
+    <property name="tcs:modelFileLastModified" value="2026-07-01T03:38:30Z" />
 </model>

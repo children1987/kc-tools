@@ -392,6 +392,187 @@ class TestEdgeCases:
         assert pt3.attrib["vehicleOrientationAngle"] == "180.0"
 
 
+# ── Vehicle / location / timestamp (Kernel-ready model) ───────────────────
+
+@pytest.fixture(scope="module")
+def full_model():
+    """Complete Kernel-ready model with vehicle, locations, timestamp."""
+    map_name, points, paths = sut.parse_kc_xmap(TEST_XMAP)
+    vehicle = sut.VehicleConfig(name="AGV-001")
+    locations = sut.LocationConfig(count=1)
+    tree = sut.build_opentcs_xml(f"KC_{map_name}", points, paths,
+                                  vehicle=vehicle, locations=locations)
+    return tree.getroot()
+
+
+@pytest.fixture(scope="module")
+def full_model_all_locs():
+    """Kernel-ready model with a location for every point."""
+    map_name, points, paths = sut.parse_kc_xmap(TEST_XMAP)
+    vehicle = sut.VehicleConfig(name="AGV-001")
+    locations = sut.LocationConfig(count=-1)  # all points
+    tree = sut.build_opentcs_xml(f"KC_{map_name}", points, paths,
+                                  vehicle=vehicle, locations=locations)
+    return tree.getroot()
+
+
+class TestVehicleElement:
+    def test_vehicle_present(self, full_model):
+        veh = full_model.find("vehicle")
+        assert veh is not None
+        assert veh.attrib["name"] == "AGV-001"
+
+    def test_vehicle_energy_attrs(self, full_model):
+        veh = full_model.find("vehicle")
+        assert veh.attrib["energyLevelCritical"] == "0"
+        assert veh.attrib["energyLevelGood"] == "80"
+        assert veh.attrib["energyLevelFullyRecharged"] == "100"
+        assert veh.attrib["maxVelocity"] == "1000"
+        assert veh.attrib["maxReverseVelocity"] == "500"
+
+    def test_vehicle_bounding_box(self, full_model):
+        bb = full_model.find("vehicle/boundingBox")
+        assert bb is not None
+        assert bb.attrib["length"] == "1000"
+        assert bb.attrib["width"] == "600"
+        assert bb.attrib["height"] == "300"
+
+    def test_vehicle_has_kecong_properties(self, full_model):
+        veh = full_model.find("vehicle")
+        props = {p.attrib["name"]: p.attrib["value"] for p in veh.findall("property")}
+        assert props["kecong:navHost"] == "127.0.0.1"
+        assert props["kecong:navPort"] == "17804"
+        assert props["kecong:qrHost"] == "127.0.0.1"
+        assert props["kecong:qrPort"] == "17800"
+        assert props["kecong:authCode"] == "KC-SIMULATOR-01"
+        assert props["kecong:pollInterval"] == "100"
+        assert props["kecong:autoInit"] == "false"
+
+    def test_vehicle_has_layout(self, full_model):
+        layout = full_model.find("vehicle/vehicleLayout")
+        assert layout is not None
+        assert layout.attrib["color"] == "#FF0000"
+
+    def test_default_config_is_simulator(self):
+        """VehicleConfig defaults match simulator settings."""
+        cfg = sut.VehicleConfig()
+        assert cfg.nav_host == "127.0.0.1"
+        assert cfg.qr_host == "127.0.0.1"
+        assert cfg.auth_code == "KC-SIMULATOR-01"
+        assert cfg.auto_init is False
+
+    def test_real_config_has_controller_defaults(self):
+        """Explicit --real should use real controller settings."""
+        cfg = sut.VehicleConfig(
+            nav_host="192.168.100.178",
+            qr_host="192.168.100.200",
+            auth_code="",
+            auto_init=True,
+        )
+        assert cfg.nav_host == "192.168.100.178"
+        assert cfg.qr_host == "192.168.100.200"
+        assert cfg.auth_code == ""
+        assert cfg.auto_init is True
+
+
+class TestLocationTypeElement:
+    def test_location_type_present(self, full_model):
+        lt = full_model.find("locationType")
+        assert lt is not None
+        assert lt.attrib["name"] == "LType-0001"
+
+    def test_location_type_has_fork_ops(self, full_model):
+        lt = full_model.find("locationType")
+        ops = {o.attrib["name"] for o in lt.findall("allowedOperation")}
+        assert ops == {"LOAD", "UNLOAD", "NOP", "FORK_FWD", "FORK_REV"}
+
+
+class TestLocationElements:
+    def test_default_one_location(self, full_model):
+        locs = full_model.findall("location")
+        assert len(locs) == 1
+        assert locs[0].attrib["name"] == "Loc-KC-1"
+
+    def test_all_points_as_locations(self, full_model_all_locs):
+        locs = full_model_all_locs.findall("location")
+        assert len(locs) == 3  # test.xmap has 3 points
+
+    def test_location_names(self, full_model_all_locs):
+        loc_names = {loc.attrib["name"] for loc in full_model_all_locs.findall("location")}
+        assert loc_names == {"Loc-KC-1", "Loc-KC-2", "Loc-KC-3"}
+
+    def test_location_links_to_point(self, full_model):
+        loc = full_model.find("location")
+        link = loc.find("link")
+        assert link is not None
+        assert link.attrib["point"] == "KC-1"
+
+    def test_location_position_matches_point(self, full_model):
+        """Location positionX/Y must equal its linked point's position."""
+        loc = full_model.find("location")
+        pt1 = _find_point(full_model, "1")
+        assert loc.attrib["positionX"] == pt1.attrib["positionX"]
+        assert loc.attrib["positionY"] == pt1.attrib["positionY"]
+        assert loc.attrib["type"] == "LType-0001"
+
+    def test_location_has_layout(self, full_model):
+        layout = full_model.find("location/locationLayout")
+        assert layout is not None
+        assert layout.attrib["locationRepresentation"] == "DEFAULT"
+
+
+class TestTimestampProperty:
+    def test_timestamp_present(self, full_model):
+        prop = full_model.find("property[@name='tcs:modelFileLastModified']")
+        assert prop is not None
+
+    def test_timestamp_iso_format(self, full_model):
+        prop = full_model.find("property[@name='tcs:modelFileLastModified']")
+        value = prop.attrib["value"]
+        # ISO 8601: 2026-07-01T10:49:05Z
+        assert "T" in value
+        assert value.endswith("Z")
+        assert len(value) == 20  # yyyy-MM-ddTHH:mm:ssZ
+
+
+class TestElementOrdering:
+    def test_children_in_schema_order(self, full_model):
+        """Model children must be: point* path* vehicle locationType location* visualLayout property."""
+        order = []
+        expected_order = ["point", "path", "vehicle", "locationType",
+                          "location", "visualLayout", "property"]
+        for child in full_model:
+            order.append(child.tag)
+        # Verify relative order (use index positions)
+        for tag in expected_order:
+            assert tag in order, f"Missing element: {tag}"
+        indices = {tag: order.index(tag) for tag in expected_order}
+        # point before path before vehicle ...
+        assert indices["point"] < indices["path"]
+        assert indices["path"] < indices["vehicle"]
+        assert indices["vehicle"] < indices["locationType"]
+        assert indices["locationType"] < indices["location"]
+        assert indices["location"] < indices["visualLayout"]
+        assert indices["visualLayout"] < indices["property"]
+
+
+class TestBackwardCompat:
+    """When vehicle=None, output is identical to pre-optimization behavior."""
+    def test_no_vehicle_element(self):
+        name, pts, pths = sut.parse_kc_xmap(TEST_XMAP)
+        tree = sut.build_opentcs_xml(name, pts, pths)
+        root = tree.getroot()
+        assert root.find("vehicle") is None
+
+    def test_no_location_or_timestamp(self):
+        name, pts, pths = sut.parse_kc_xmap(TEST_XMAP)
+        tree = sut.build_opentcs_xml(name, pts, pths)
+        root = tree.getroot()
+        assert root.find("locationType") is None
+        assert root.find("location") is None
+        assert root.find("property[@name='tcs:modelFileLastModified']") is None
+
+
 # ── helpers ─────────────────────────────────────────────────────────────
 
 def _find_point(root: ET.Element, kc_id: str) -> ET.Element:
