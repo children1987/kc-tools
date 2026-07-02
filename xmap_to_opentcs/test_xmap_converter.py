@@ -573,6 +573,79 @@ class TestBackwardCompat:
         assert root.find("property[@name='tcs:modelFileLastModified']") is None
 
 
+# ── build_map_config_json ──────────────────────────────────────────────
+
+class TestBuildMapConfigJson:
+    """Tests for the simulator map_config.json generator."""
+
+    def test_point_count(self):
+        _, points, paths = sut.parse_kc_xmap(TEST_XMAP)
+        cfg = sut.build_map_config_json(points, paths)
+        assert len(cfg["points"]) == 3
+        assert len(cfg["points"]) == len(points)
+
+    def test_point_fields(self):
+        _, points, paths = sut.parse_kc_xmap(TEST_XMAP)
+        cfg = sut.build_map_config_json(points, paths)
+        pt = cfg["points"][0]
+        assert "id" in pt
+        assert "x" in pt
+        assert "y" in pt
+        assert "name" in pt
+        assert isinstance(pt["id"], int)
+        assert isinstance(pt["x"], float)
+        assert isinstance(pt["y"], float)
+        assert isinstance(pt["name"], str)
+
+    def test_coordinates_are_meters_not_mm(self):
+        """map_config.json uses meters, not millimeters like model.xml."""
+        _, points, paths = sut.parse_kc_xmap(TEST_XMAP)
+        cfg = sut.build_map_config_json(points, paths)
+        by_id = {p["id"]: p for p in cfg["points"]}
+        # Point 1 in test.xmap: x=-4.888..., y=-12.827... (meters)
+        assert by_id[1]["x"] == pytest.approx(-4.888, abs=0.01)
+        assert by_id[1]["y"] == pytest.approx(-12.828, abs=0.01)
+
+    def test_points_have_kc_prefix_names(self):
+        _, points, paths = sut.parse_kc_xmap(TEST_XMAP)
+        cfg = sut.build_map_config_json(points, paths)
+        for pt in cfg["points"]:
+            assert pt["name"].startswith("KC-"), f"Expected KC- prefix, got {pt['name']}"
+
+    def test_path_count_includes_reverse(self):
+        """Paths should be bidirectional — reverse edges auto-added."""
+        _, points, paths = sut.parse_kc_xmap(TEST_XMAP)
+        # test.xmap has 4 directed paths, but some are already bidirectional pairs
+        cfg = sut.build_map_config_json(points, paths)
+        # Verify every forward path has a matching reverse
+        pairs: set[tuple[int, int]] = set()
+        for p in cfg["paths"]:
+            pairs.add((p["from"], p["to"]))
+        for fwd in list(pairs):
+            assert (fwd[1], fwd[0]) in pairs, \
+                f"Missing reverse path: {fwd[1]} -> {fwd[0]}"
+
+    def test_path_ids_are_unique(self):
+        _, points, paths = sut.parse_kc_xmap(TEST_XMAP)
+        cfg = sut.build_map_config_json(points, paths)
+        ids = [p["id"] for p in cfg["paths"]]
+        assert len(ids) == len(set(ids)), "Path IDs are not unique"
+
+    def test_kc_point_ids_are_ints(self):
+        _, points, paths = sut.parse_kc_xmap(TEST_XMAP)
+        cfg = sut.build_map_config_json(points, paths)
+        point_ids = {p["id"] for p in cfg["points"]}
+        assert point_ids == {1, 2, 3}
+
+    def test_path_from_to_match_point_ids(self):
+        _, points, paths = sut.parse_kc_xmap(TEST_XMAP)
+        cfg = sut.build_map_config_json(points, paths)
+        point_ids = {p["id"] for p in cfg["points"]}
+        for p in cfg["paths"]:
+            assert p["from"] in point_ids, f"Path from={p['from']} not in points"
+            assert p["to"] in point_ids, f"Path to={p['to']} not in points"
+
+
 # ── helpers ─────────────────────────────────────────────────────────────
 
 def _find_point(root: ET.Element, kc_id: str) -> ET.Element:

@@ -10,6 +10,7 @@ or --no-vehicle for navigation topology only.
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -87,6 +88,66 @@ def _current_utc() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+# ── simulator map_config.json builder ──────────────────────────────────────
+
+def build_map_config_json(
+    points: list[KcPoint],
+    paths: list[KcPath],
+) -> dict:
+    """Build the simulator map_config.json structure from parsed xmap data.
+
+    Returns a dict with "points" and "paths" keys matching the format
+    expected by :class:`~agv_engine.VirtualAgv` / :class:`~udp_server.UdpServer`.
+
+    Coordinates are in **meters** (not mm).  Paths are auto-bidirectioned:
+    for every A→B edge a matching B→A edge is added unless one already exists.
+    """
+    point_by_id = {p.kc_id: p for p in points}
+
+    # ── Points (sorted by ID so KC-1 is first = simulator start position) ──
+    map_points: list[dict] = []
+    for pt in sorted(points, key=lambda p: int(p.kc_id)):
+        map_points.append({
+            "id": int(pt.kc_id),
+            "x": pt.x_m,
+            "y": pt.y_m,
+            "name": _point_name(pt.kc_id),
+        })
+
+    # ── Paths ───────────────────────────────────────────────────────────
+    map_paths: list[dict] = []
+    existing_pairs: set[tuple[int, int]] = set()
+    path_id = 1
+
+    for p in paths:
+        if p.start_id not in point_by_id or p.end_id not in point_by_id:
+            continue
+        from_id = int(p.start_id)
+        to_id = int(p.end_id)
+        if (from_id, to_id) in existing_pairs:
+            continue
+        map_paths.append({
+            "id": path_id,
+            "from": from_id,
+            "to": to_id,
+        })
+        existing_pairs.add((from_id, to_id))
+        path_id += 1
+
+    # Auto-bidirection: for every A→B without a matching B→A, add one
+    for (from_id, to_id) in list(existing_pairs):
+        if (to_id, from_id) not in existing_pairs:
+            map_paths.append({
+                "id": path_id,
+                "from": to_id,
+                "to": from_id,
+            })
+            existing_pairs.add((to_id, from_id))
+            path_id += 1
+
+    return {"points": map_points, "paths": map_paths}
+
+
 # ── xmap parser ──────────────────────────────────────────────────────────
 
 def parse_kc_xmap(xmap_path: Path) -> tuple[str, list[KcPoint], list[KcPath]]:
@@ -141,6 +202,7 @@ def build_opentcs_xml(
     *,
     vehicle: VehicleConfig | None = None,
     locations: LocationConfig | None = None,
+    point_tags: dict[str, list[tuple[str, str]]] | None = None,
 ) -> ET.ElementTree:
     """Build an openTCS 7.0.0 Plant Model ElementTree.
 
@@ -151,6 +213,9 @@ def build_opentcs_xml(
     When *vehicle* is provided, a full Kernel-ready model is produced:
     vehicle, locationType, locations, and tcs:modelFileLastModified are
     included.
+
+    *point_tags* is an optional dict mapping point kc_id (str) to a list of
+    (name, value) property pairs to inject into that point element.
     """
     point_by_id = {p.kc_id: p for p in points}
     outgoing: dict[str, list[str]] = {p.kc_id: [] for p in points}
@@ -206,6 +271,13 @@ def build_opentcs_xml(
             "property",
             {"name": "kc:className", "value": pt.class_name},
         )
+        # Inject optional point tags (e.g. kc:isLowDoor, kc:isCharger)
+        for tag_name, tag_value in (point_tags or {}).get(pt.kc_id, []):
+            ET.SubElement(
+                point_el,
+                "property",
+                {"name": tag_name, "value": tag_value},
+            )
         ET.SubElement(
             point_el,
             "pointLayout",
@@ -454,12 +526,47 @@ def main() -> None:
     parser.add_argument("--no-vehicle", action="store_true",
                         help="Generate only navigation topology (points + paths), no vehicle/locations")
 
+    # Simulator map config output
+    sim = parser.add_argument_group("simulator map config")
+    sim.add_argument("--map-config-output", type=Path,
+                     help="Path for the simulator map_config.json (default: alongside model.xml)")
+    sim.add_argument("--no-map-config", action="store_true",
+                     help="Skip generating the simulator map_config.json")
+
+    # Point property tagging
+    tag = parser.add_argument_group("point property tagging")
+    tag.add_argument("--tag-low-doors", action="store_true",
+                     help="Auto-tag KC-50X and KC-408 points with kc:isLowDoor=true")
+    tag.add_argument("--tag-charger", type=str, metavar="POINT",
+                     help="Tag the given point name with kc:isCharger=true (e.g. --tag-charger KC-1)")
+
     args = parser.parse_args()
 
     map_name, points, paths = parse_kc_xmap(args.input)
 
+    # Compute point tags from CLI flags (applies to both --no-vehicle and normal modes)
+    point_tags: dict[str, list[tuple[str, str]]] = {}
+    if args.tag_low_doors:
+        for pt in points:
+            pid = int(pt.kc_id)
+            if (500 <= pid <= 509) or pid == 408:
+                point_tags.setdefault(pt.kc_id, []).append(
+                    ("kc:isLowDoor", "true"))
+    if args.tag_charger:
+        charger_name = args.tag_charger
+        if charger_name.startswith("KC-"):
+            charger_id = charger_name[3:]
+            if charger_id in {p.kc_id for p in points}:
+                point_tags.setdefault(charger_id, []).append(
+                    ("kc:isCharger", "true"))
+            else:
+                print(f"Warning: --tag-charger point '{charger_name}' not found in map")
+        else:
+            print(f"Warning: --tag-charger expects KC- prefix, got '{charger_name}'")
+
     if args.no_vehicle:
-        tree = build_opentcs_xml(f"KC_{map_name}", points, paths)
+        tree = build_opentcs_xml(f"KC_{map_name}", points, paths,
+                                 point_tags=point_tags or None)
     else:
         if args.real:
             args.nav_host = "192.168.100.178"
@@ -487,13 +594,26 @@ def main() -> None:
         locations = LocationConfig(count=loc_count, start_index=0)
 
         tree = build_opentcs_xml(f"KC_{map_name}", points, paths,
-                                 vehicle=vehicle, locations=locations)
+                                 vehicle=vehicle, locations=locations,
+                                 point_tags=point_tags or None)
 
     output = args.output or args.input.parent / "model.xml"
     output.parent.mkdir(parents=True, exist_ok=True)
     ET.indent(tree, space="    ")
     tree.write(output, encoding="UTF-8", xml_declaration=True)
     print(f"Converted {len(points)} points, {len(paths)} paths -> {output}")
+
+    # ── Simulator map_config.json ───────────────────────────────────────
+    if not args.no_map_config:
+        map_json = build_map_config_json(points, paths)
+        map_config_path = args.map_config_output or output.parent / "map_config.json"
+        map_config_path.parent.mkdir(parents=True, exist_ok=True)
+        map_config_path.write_text(
+            json.dumps(map_json, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        print(f"Simulator map: {len(map_json['points'])} points, "
+              f"{len(map_json['paths'])} paths -> {map_config_path}")
 
 
 if __name__ == "__main__":
