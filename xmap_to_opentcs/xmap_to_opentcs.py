@@ -99,8 +99,8 @@ def build_map_config_json(
     Returns a dict with "points" and "paths" keys matching the format
     expected by :class:`~agv_engine.VirtualAgv` / :class:`~udp_server.UdpServer`.
 
-    Coordinates are in **meters** (not mm).  Paths are auto-bidirectioned:
-    for every A→B edge a matching B→A edge is added unless one already exists.
+    Coordinates are in **meters** (not mm).  Paths preserve the original
+    direction from the xmap — no automatic bidirectioning.
     """
     point_by_id = {p.kc_id: p for p in points}
 
@@ -114,36 +114,19 @@ def build_map_config_json(
             "name": _point_name(pt.kc_id),
         })
 
-    # ── Paths ───────────────────────────────────────────────────────────
+    # ── Paths (preserve original direction from xmap) ───────────────────
     map_paths: list[dict] = []
-    existing_pairs: set[tuple[int, int]] = set()
     path_id = 1
 
     for p in paths:
         if p.start_id not in point_by_id or p.end_id not in point_by_id:
             continue
-        from_id = int(p.start_id)
-        to_id = int(p.end_id)
-        if (from_id, to_id) in existing_pairs:
-            continue
         map_paths.append({
             "id": path_id,
-            "from": from_id,
-            "to": to_id,
+            "from": int(p.start_id),
+            "to": int(p.end_id),
         })
-        existing_pairs.add((from_id, to_id))
         path_id += 1
-
-    # Auto-bidirection: for every A→B without a matching B→A, add one
-    for (from_id, to_id) in list(existing_pairs):
-        if (to_id, from_id) not in existing_pairs:
-            map_paths.append({
-                "id": path_id,
-                "from": to_id,
-                "to": from_id,
-            })
-            existing_pairs.add((to_id, from_id))
-            path_id += 1
 
     return {"points": map_points, "paths": map_paths}
 
@@ -539,6 +522,12 @@ def main() -> None:
                      help="Auto-tag KC-50X and KC-408 points with kc:isLowDoor=true")
     tag.add_argument("--tag-charger", type=str, metavar="POINT",
                      help="Tag the given point name with kc:isCharger=true (e.g. --tag-charger KC-1)")
+
+    # Deployment
+    deploy = parser.add_argument_group("deployment")
+    deploy.add_argument("--deploy", type=Path, metavar="KERNEL_DATA_DIR",
+                        help="Copy model.xml and map_config.json to Kernel data dir "
+                             "(e.g. --deploy opentcs-7.3.0-bin/opentcs-kernel/data)")
 
     args = parser.parse_args()
 

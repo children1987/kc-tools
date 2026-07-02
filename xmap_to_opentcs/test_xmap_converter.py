@@ -612,18 +612,12 @@ class TestBuildMapConfigJson:
         for pt in cfg["points"]:
             assert pt["name"].startswith("KC-"), f"Expected KC- prefix, got {pt['name']}"
 
-    def test_path_count_includes_reverse(self):
-        """Paths should be bidirectional — reverse edges auto-added."""
+    def test_path_count_matches_xmap(self):
+        """Paths should match xmap exactly — no artificial bidirectioning."""
         _, points, paths = sut.parse_kc_xmap(TEST_XMAP)
-        # test.xmap has 4 directed paths, but some are already bidirectional pairs
         cfg = sut.build_map_config_json(points, paths)
-        # Verify every forward path has a matching reverse
-        pairs: set[tuple[int, int]] = set()
-        for p in cfg["paths"]:
-            pairs.add((p["from"], p["to"]))
-        for fwd in list(pairs):
-            assert (fwd[1], fwd[0]) in pairs, \
-                f"Missing reverse path: {fwd[1]} -> {fwd[0]}"
+        # test.xmap has 4 paths, map_config.json should have exactly 4
+        assert len(cfg["paths"]) == len(paths)
 
     def test_path_ids_are_unique(self):
         _, points, paths = sut.parse_kc_xmap(TEST_XMAP)
