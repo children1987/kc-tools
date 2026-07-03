@@ -2,33 +2,49 @@
 """
 switch-env.py — 模拟器 ↔ 实车 一键切换工具
 ============================================
-修改 argentina-app fork_udp.py 中的 controller_ip，
-一键切换叉臂 UDP 控制的目标地址。
+同时修改 argentina-app 和 openTCS 模型文件中的所有相关配置。
 
-注意: 本脚本不修改 model.xml — 模型文件的切换请手动处理。
+切换项:
+  1. fork_udp.py           controller_ip
+  2. model.xml             kecong:navHost / kecong:qrHost / kecong:authCode
+  3. model-zhongwu.xml     同上
 
 用法:
-  python switch-env.py --sim      # 切换到模拟器模式 (127.0.0.1)
-  python switch-env.py --real     # 切换到实车模式 (192.168.100.200)
+  python switch-env.py --sim      # 切换到模拟器模式
+  python switch-env.py --real     # 切换到实车模式
   python switch-env.py --status   # 查看当前模式
 """
 
 import socket
 import argparse
 import re
+import sys
 from pathlib import Path
 
-# ── 路径 ──
+# ── 路径（相对于脚本所在目录）──
 SCRIPT_DIR = Path(__file__).resolve().parent
 WORKSPACE = SCRIPT_DIR.parent.parent
+
+# argentina-app
 FORK_UDP_FILE = WORKSPACE / "projects" / "argentina-app" / "app" / "fork_udp.py"
 
-SIM_IP = "127.0.0.1"
-REAL_IP = "192.168.100.200"
+# openTCS 模型文件
+MODEL_FILES = [
+    WORKSPACE / "opentcs-7.3.0-bin" / "opentcs-kernel" / "data" / "model.xml",
+]
+
+# ── 配置常量 ──
+SIM_NAV_HOST = "127.0.0.1"
+SIM_QR_HOST = "127.0.0.1"
+SIM_AUTH_CODE = "KC-SIMULATOR-01"
+
+REAL_NAV_HOST = "192.168.100.178"
+REAL_QR_HOST = "192.168.100.200"
+# 实车使用默认二进制认证码（与 fork_udp.py 中 AUTH 一致），不设 authCode
 
 
 def detect_mode() -> str | None:
-    """根据 fork_udp.py 的 controller_ip 判断当前模式。"""
+    """根据 fork_udp.py 的 controller_ip 和 model.xml 判断当前模式。"""
     if not FORK_UDP_FILE.exists():
         return None
     content = FORK_UDP_FILE.read_text(encoding="utf-8")
@@ -36,9 +52,9 @@ def detect_mode() -> str | None:
     if not m:
         return None
     ip = m.group(1)
-    if ip == SIM_IP:
+    if ip == "127.0.0.1":
         return "sim"
-    elif ip == REAL_IP:
+    elif ip == REAL_QR_HOST:
         return "real"
     return None
 
@@ -46,18 +62,49 @@ def detect_mode() -> str | None:
 def show_status():
     """打印当前状态。"""
     print(f"\n当前环境状态")
-    print("-" * 40)
+    print("-" * 50)
     mode = detect_mode()
     if mode == "sim":
-        print(f"  fork_udp.py controller_ip = {SIM_IP}  (模拟器)")
+        print(f"  模式:         模拟器 (Simulator)")
     elif mode == "real":
-        print(f"  fork_udp.py controller_ip = {REAL_IP}  (实车)")
+        print(f"  模式:         实车 (Real Vehicle)")
     else:
-        print(f"  fork_udp.py controller_ip = (未识别)")
+        print(f"  模式:         (未识别)")
 
+    # fork_udp.py
+    if FORK_UDP_FILE.exists():
+        content = FORK_UDP_FILE.read_text(encoding="utf-8")
+        m = re.search(r'controller_ip:\s*str\s*=\s*"([^"]+)"', content)
+        print(f"  fork_udp.py:  {m.group(1) if m else '(未识别)'}")
+    else:
+        print(f"  fork_udp.py:  (文件不存在)")
+
+    # model files
+    for model_file in MODEL_FILES:
+        check_model_status(model_file)
+
+    # 端口检查
     sim_running = _check_port(17804)
-    print(f"  模拟器进程 (端口17804): {'运行中' if sim_running else '未运行'}")
+    print(f"  模拟器进程:    {'运行中' if sim_running else '未运行'} (端口17804)")
     print()
+
+
+def check_model_status(model_file: Path):
+    """显示单个模型文件的当前配置。"""
+    if not model_file.exists():
+        print(f"  {model_file.name}: (文件不存在)")
+        return
+
+    content = model_file.read_text(encoding="utf-8")
+    nav = re.search(r'<property name="kecong:navHost" value="([^"]+)"', content)
+    qr = re.search(r'<property name="kecong:qrHost" value="([^"]+)"', content)
+    auth = re.search(r'<property name="kecong:authCode" value="([^"]+)"', content)
+
+    nav_val = nav.group(1) if nav else "未设置"
+    qr_val = qr.group(1) if qr else "未设置"
+    auth_val = auth.group(1) if auth else "(使用默认)"
+
+    print(f"  {model_file.name}: nav={nav_val}, qr={qr_val}, auth={auth_val}")
 
 
 def _check_port(port: int) -> bool:
@@ -72,50 +119,158 @@ def _check_port(port: int) -> bool:
         return True
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# 切换逻辑
+# ═══════════════════════════════════════════════════════════════════════
+
 def switch_to(target: str):
-    """执行切换。"""
+    """执行完整切换。"""
     target_name = "实车 (Real Vehicle)" if target == "real" else "模拟器 (Simulator)"
-    new_ip = REAL_IP if target == "real" else SIM_IP
     now = detect_mode()
 
     print(f"\n切换到: {target_name}")
-    print("-" * 40)
+    print("=" * 50)
 
     if now == target:
         print(f"  [INFO] 当前已是 {target_name} 模式，无需切换\n")
         return
 
+    errors = []
+
+    # ── 1. fork_udp.py ──
+    errors += _switch_fork_udp(target)
+
+    # ── 2. 模型文件 ──
+    for model_file in MODEL_FILES:
+        errors += _switch_model_xml(model_file, target)
+
+    # ── 结果汇总 ──
+    print("=" * 50)
+    if errors:
+        print(f"  [WARN] 切换完成，但有 {len(errors)} 个问题:")
+        for e in errors:
+            print(f"    - {e}")
+    else:
+        print(f"  [OK] 全部切换完成！")
+
+    _print_post_actions(target)
+    print()
+
+
+def _switch_fork_udp(target: str) -> list[str]:
+    """切换 fork_udp.py 中的 controller_ip。"""
+    errors = []
+    new_ip = REAL_QR_HOST if target == "real" else "127.0.0.1"
+
     if not FORK_UDP_FILE.exists():
-        print(f"  [ERR] 找不到文件: {FORK_UDP_FILE}\n")
-        return
+        return [f"找不到文件: {FORK_UDP_FILE}"]
 
     content = FORK_UDP_FILE.read_text(encoding="utf-8")
     pattern = r'(controller_ip:\s*str\s*=\s*)"[^"]*"(.*)'
     if re.search(pattern, content):
         content = re.sub(pattern, rf'\g<1>"{new_ip}"\g<2>', content)
         FORK_UDP_FILE.write_text(content, encoding="utf-8")
-        print(f"  [OK] fork_udp.py controller_ip = {new_ip}")
+        print(f"  [OK] fork_udp.py → controller_ip = {new_ip}")
     else:
-        print(f"  [ERR] 未找到 controller_ip 定义")
-        return
+        errors.append(f"fork_udp.py 中未找到 controller_ip 定义")
 
-    print("-" * 40)
-    print(f"  [OK] 切换完成！")
+    return errors
+
+
+def _switch_model_xml(model_file: Path, target: str) -> list[str]:
+    """切换模型 XML 文件中的车辆属性。
+
+    切换项:
+      - kecong:navHost    127.0.0.1 ↔ 192.168.100.178
+      - kecong:qrHost     127.0.0.1 ↔ 192.168.100.200
+      - kecong:authCode   SIM: KC-SIMULATOR-01 / REAL: 移除（用默认二进制码）
+    """
+    errors = []
+    fname = model_file.name
+
+    if not model_file.exists():
+        errors.append(f"找不到文件: {model_file}")
+        return errors
+
+    content = model_file.read_text(encoding="utf-8")
+    original = content
+
+    if target == "real":
+        new_nav = REAL_NAV_HOST
+        new_qr = REAL_QR_HOST
+        # 移除 authCode 行，让适配器回退到默认二进制认证码
+        content = re.sub(
+            r'\s*<property name="kecong:authCode"[^/]*/>\s*\n?',
+            '', content
+        )
+    else:  # sim
+        new_nav = SIM_NAV_HOST
+        new_qr = SIM_QR_HOST
+        # 确保 authCode 属性存在
+        auth_pattern = r'<property name="kecong:authCode" value="[^"]*"'
+        if re.search(auth_pattern, content):
+            content = re.sub(
+                auth_pattern,
+                f'<property name="kecong:authCode" value="{SIM_AUTH_CODE}"',
+                content
+            )
+        else:
+            # 在 autoInit 后面插入 authCode
+            autoinit_pattern = r'(<property name="kecong:autoInit" value="[^"]*" />)'
+            if re.search(autoinit_pattern, content):
+                content = re.sub(
+                    autoinit_pattern,
+                    rf'\1\n        <property name="kecong:authCode" value="{SIM_AUTH_CODE}" />',
+                    content
+                )
+            else:
+                errors.append(f"{fname}: 找不到 autoInit 行，无法插入 authCode")
+
+    # 切换 IP
+    nav_pattern = r'(<property name="kecong:navHost" value=")[^"]*(")'
+    qr_pattern = r'(<property name="kecong:qrHost" value=")[^"]*(")'
+
+    nav_count = len(re.findall(nav_pattern, content))
+    qr_count = len(re.findall(qr_pattern, content))
+
+    content = re.sub(nav_pattern, rf'\g<1>{new_nav}\g<2>', content)
+    content = re.sub(qr_pattern, rf'\g<1>{new_qr}\g<2>', content)
+
+    if content != original:
+        model_file.write_text(content, encoding="utf-8")
+        print(f"  [OK] {fname}: navHost={new_nav}, qrHost={new_qr}"
+              + (f", authCode=已移除" if target == "real" else f", authCode={SIM_AUTH_CODE}"))
+    else:
+        print(f"  [--] {fname}: 无需修改 (已是目标值)")
+
+    if nav_count == 0:
+        errors.append(f"{fname}: 未找到 kecong:navHost 属性")
+    if qr_count == 0:
+        errors.append(f"{fname}: 未找到 kecong:qrHost 属性")
+
+    return errors
+
+
+def _print_post_actions(target: str):
+    """打印切换后需要的手动操作。"""
     print()
     print(f"  *** 后续操作: ***")
-    print(f"     - 重启 argentina-app 使修改生效")
     if target == "sim":
-        print(f"     - 确保 simulators/kc-simulator 已启动")
+        print(f"    1. 确保 simulators/kc-simulator 已启动")
+        print(f"    2. 重启 openTCS Kernel + argentina-app")
     else:
-        print(f"     - 确保 simulators/kc-simulator 已停止")
-    print()
+        print(f"    1. 确保 simulators/kc-simulator 已停止")
+        print(f"    2. 确认控制器网络可达: ping {REAL_NAV_HOST}")
+        print(f"    3. 重启 openTCS Kernel + argentina-app")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="模拟器 ↔ 实车 一键切换工具")
+    parser = argparse.ArgumentParser(
+        description="模拟器 ↔ 实车 一键切换工具 — 同时更新 argentina-app + openTCS 模型文件"
+    )
     parser.add_argument("--sim", action="store_true", help="切换到模拟器模式")
     parser.add_argument("--real", action="store_true", help="切换到实车模式")
-    parser.add_argument("--status", action="store_true", help="查看当前模式（默认）")
+    parser.add_argument("--status", action="store_true", help="查看当前模式")
     args = parser.parse_args()
 
     if args.sim:
