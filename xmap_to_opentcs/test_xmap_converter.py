@@ -444,7 +444,7 @@ class TestVehicleElement:
         assert props["kecong:navPort"] == "17804"
         assert props["kecong:qrHost"] == "127.0.0.1"
         assert props["kecong:qrPort"] == "17800"
-        assert props["kecong:authCode"] == "KC-SIMULATOR-01"
+        # authCode no longer emitted
         assert props["kecong:pollInterval"] == "100"
         assert props["kecong:autoInit"] == "false"
 
@@ -458,7 +458,7 @@ class TestVehicleElement:
         cfg = sut.VehicleConfig()
         assert cfg.nav_host == "127.0.0.1"
         assert cfg.qr_host == "127.0.0.1"
-        assert cfg.auth_code == "KC-SIMULATOR-01"
+        # auth_code removed from VehicleConfig
         assert cfg.auto_init is False
 
     def test_real_config_has_controller_defaults(self):

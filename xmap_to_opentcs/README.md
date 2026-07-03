@@ -40,7 +40,7 @@ python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py warehouse.xmap --no-veh
 | `--nav-port` | `17804` | 导航 UDP 端口 |
 | `--qr-host` | `127.0.0.1` | QR/磁导航控制器 IP |
 | `--qr-port` | `17800` | QR/变量 UDP 端口 |
-| `--auth-code` | `KC-SIMULATOR-01` | 协议认证码 |
+| ~~`--auth-code`~~ | (已移除) | 认证码统一使用默认二进制码 |
 | `--auto-init` | (off) | 启用自动初始化（`--real` 时默认开启） |
 | `--real` | — | 实车控制器模式：`192.168.100.178/200` + 空认证码 + 自动初始化 |
 
@@ -77,7 +77,7 @@ python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py warehouse.xmap --no-veh
 python tools/kc-tools/xmap_to_opentcs/xmap_to_opentcs.py argentina.xmap
 ```
 
-生成的 model.xml 带 `kecong:navHost=127.0.0.1`、`kecong:authCode=KC-SIMULATOR-01`，配合 `kc-simulator` 使用。
+生成的 model.xml 带 `kecong:navHost=127.0.0.1`，配合 `kc-simulator` 使用。认证码已统一为默认二进制码，无需额外配置。
 
 ### 实车部署
 

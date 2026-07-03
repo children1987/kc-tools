@@ -47,7 +47,7 @@ class VehicleConfig:
     nav_port: int = 17804
     qr_host: str = "127.0.0.1"
     qr_port: int = 17800
-    auth_code: str = "KC-SIMULATOR-01"
+    # auth_code removed — simulator and real vehicle now share the same default binary auth code
     poll_interval: int = 100
     auto_init: bool = False
     energy_source: str | None = None
@@ -401,7 +401,7 @@ def _add_kecong_properties(vehicle_el: ET.Element, cfg: VehicleConfig) -> None:
             props.append(("kecong:energyVarPort", cfg.energy_var_port))
     if cfg.energy_config_path:
         props.append(("kecong:energyConfigPath", cfg.energy_config_path))
-    props.append(("kecong:authCode", cfg.auth_code))
+    # authCode no longer emitted — default binary auth code is used for both sim and real
 
     for name, value in props:
         ET.SubElement(vehicle_el, "property", {"name": name, "value": value})
@@ -480,8 +480,7 @@ def main() -> None:
                      help="QR controller IP (default: 127.0.0.1)")
     veh.add_argument("--qr-port", type=int, default=17800,
                      help="QR UDP port (default: 17800)")
-    veh.add_argument("--auth-code", default="KC-SIMULATOR-01",
-                     help="Protocol auth code (default: KC-SIMULATOR-01)")
+    # --auth-code removed: simulator and real vehicle now use the same default binary auth code
     veh.add_argument("--auto-init", action="store_true",
                      help="Enable auto-initialization on vehicle enable (on by default with --real)")
     veh.add_argument("--real", action="store_true",
@@ -560,7 +559,7 @@ def main() -> None:
         if args.real:
             args.nav_host = "192.168.100.178"
             args.qr_host = "192.168.100.200"
-            args.auth_code = ""
+            # auth_code no longer needed
             args.auto_init = True
 
         vehicle = VehicleConfig(
@@ -569,7 +568,7 @@ def main() -> None:
             nav_port=args.nav_port,
             qr_host=args.qr_host,
             qr_port=args.qr_port,
-            auth_code=args.auth_code,
+            # auth_code no longer passed — default binary auth code used
             poll_interval=100,
             auto_init=args.auto_init,
             energy_source=args.energy_source,

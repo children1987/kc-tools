@@ -8510,7 +8510,6 @@
         <property name="kecong:qrHost" value="127.0.0.1" />
         <property name="kecong:qrPort" value="17800" />
         <property name="kecong:autoInit" value="false" />
-        <property name="kecong:authCode" value="KC-SIMULATOR-01" />
         <vehicleLayout color="#FF0000" />
     </vehicle>
     <locationType name="LType-0001">

@@ -18,7 +18,7 @@ import time
 import argparse
 import threading
 
-AUTH = b'KC-SIMULATOR-01'
+AUTH = b'\xed\x01\xe9\xd2\xb8\xa2\x6b\x4c\x85\x72\x77\xf2\xb2\xcb\x61\xb4'
 HEADER_SIZE = 0x1C
 
 # ── State ──
