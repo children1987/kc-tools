@@ -265,19 +265,45 @@ def diag_network() -> bool:
         check_ping(REAL_NAV_HOST, "导航控制器(推测)")
         check_ping(REAL_QR_HOST, "QR/变量控制器(推测)")
 
-    # 本机 IP 信息
-    try:
-        r = subprocess.run(["ipconfig"], capture_output=True, text=True, timeout=5)
-        for line in r.stdout.splitlines():
-            if 'IPv4' in line or 'IP Address' in line or 'Subnet Mask' in line or '子网掩码' in line:
-                info(f"  {line.strip()}")
-            elif 'Ethernet' in line or '以太网' in line or '无线' in line or 'Wireless' in line:
-                if 'adapter' in line.lower() or '适配器' in line:
-                    info(f"  {line.strip()}")
-    except Exception:
-        pass  # ipconfig not critical
+    # 本机 IP 网段分析
+    _check_ip_subnet()
 
     return all_ok
+
+
+def _check_ip_subnet():
+    """分析本机 IP 是否与控制器在同一网段。"""
+    try:
+        r = subprocess.run(["ipconfig"], capture_output=True, text=True, timeout=5)
+        output = r.stdout
+    except Exception:
+        return
+
+    # 提取所有 IPv4 地址
+    local_ips = re.findall(r'IPv4[^:]*:\s*(\d+\.\d+\.\d+\.\d+)', output)
+    if not local_ips:
+        local_ips = re.findall(r'IP Address[^:]*:\s*(\d+\.\d+\.\d+\.\d+)', output)
+
+    if not local_ips:
+        info("未能获取本机 IP 列表")
+        return
+
+    info(f"本机 IP: {', '.join(local_ips)}")
+
+    mode = detect_mode()
+    if mode == "real":
+        # 控制器网段: 192.168.100.0/24
+        controller_subnet = "192.168.100."
+        in_subnet = [ip for ip in local_ips if ip.startswith(controller_subnet)]
+        if in_subnet:
+            ok(f"本机 IP {in_subnet[0]} 与控制器同网段 (192.168.100.x)")
+        else:
+            fail(f"本机 IP 不在控制器网段 192.168.100.x ！")
+            fail(f"  → 本机 IP: {', '.join(local_ips)}")
+            fail(f"  → 控制器: {REAL_NAV_HOST} / {REAL_QR_HOST}")
+            fail(f"  → 请将 PC 网卡 IP 设置为 192.168.100.x 网段")
+    elif mode == "sim":
+        info("模拟器模式，使用 127.0.0.1 本地回环")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -417,7 +443,38 @@ def diag_model() -> bool:
             fail("Kernel 模型中未找到车辆 AGV-001")
             all_ok = False
 
+    # 适配器 JAR 文件
+    _check_adapter_jars()
+
     return all_ok
+
+
+def _check_adapter_jars():
+    """检查 Kecong 适配器 JAR 文件是否存在。"""
+    if not OPENTCS_DIR:
+        warn("无法检查适配器 JAR（未找到 openTCS 目录）")
+        return
+
+    ext_dir = OPENTCS_DIR / "opentcs-kernel" / "lib" / "openTCS-extensions"
+    if not ext_dir.exists():
+        fail(f"适配器目录不存在: {ext_dir}")
+        return
+
+    adapter_jar = ext_dir / "kecong-opentcs-adapter-1.0.0.jar"
+    protocol_jar = ext_dir / "kecong-opentcs-protocol-1.0.0.jar"
+
+    if adapter_jar.exists() and protocol_jar.exists():
+        asize = adapter_jar.stat().st_size
+        psize = protocol_jar.stat().st_size
+        ok(f"适配器 JAR 完整: adapter={asize/1024:.0f}KB, protocol={psize/1024:.0f}KB")
+    else:
+        missing = []
+        if not adapter_jar.exists():
+            missing.append("kecong-opentcs-adapter-1.0.0.jar")
+        if not protocol_jar.exists():
+            missing.append("kecong-opentcs-protocol-1.0.0.jar")
+        fail(f"适配器 JAR 缺失: {', '.join(missing)}")
+        fail(f"  → 请将 JAR 放入: {ext_dir}")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -506,6 +563,9 @@ def diag_services() -> bool:
     except Exception:
         warn(f"argentina-app HTTP 无响应 ({APP_URL}) — 可能未启动")
 
+    # 适配器连接状态（从 Kernel 日志分析）
+    _diag_adapter_from_logs()
+
     # 端口占用检查
     mode = detect_mode()
     port_17804_used = check_port_bound(NAV_PORT)
@@ -526,6 +586,132 @@ def diag_services() -> bool:
         info(f"端口 {QR_PORT} 空闲")
 
     return all_ok
+
+
+def _diag_adapter_from_logs():
+    """从 Kernel 日志分析 Kecong 适配器的加载和连接状态。
+
+    扫描所有可用日志文件（含轮转日志），不依赖 Kernel REST API。
+    关键指标:
+      - 模块加载: KecongAdapterModule 是否被 Kernel 发现
+      - 工厂注册: KecongCommAdapterFactory 是否注册成功
+      - 适配器 enable: 是否尝试为 AGV-001 启用适配器
+      - UDP 通道: 是否有 NAV 指令执行记录
+      - 集成状态: integrationLevel 是否到达 TO_BE_UTILIZED
+    """
+    if not OPENTCS_DIR:
+        return
+
+    log_dir = OPENTCS_DIR / "opentcs-kernel" / "log"
+    if not log_dir.exists():
+        return
+
+    # 收集所有日志文件（含轮转日志），按修改时间排序
+    all_logs = sorted(
+        log_dir.glob("opentcs-kernel*.log*"),
+        key=lambda p: p.stat().st_mtime, reverse=True
+    )
+    if not all_logs:
+        return
+
+    # 拼接最近几个日志文件的内容（最多读取 3 个文件，每个最多 2000 行）
+    combined: list[str] = []
+    files_used = 0
+    for lf in all_logs[:3]:
+        try:
+            content = lf.read_text(encoding="utf-8", errors="replace")
+            combined = content.splitlines() + combined  # 老文件在前，新文件在后
+            files_used += 1
+            if len(combined) >= 3000:
+                break
+        except Exception:
+            continue
+
+    if not combined:
+        return
+
+    info(f"适配器: 扫描 {files_used} 个日志文件，共 {len(combined)} 行")
+
+    # 找最近一次 Kernel 启动点
+    boot_idx = 0
+    for i in range(len(combined) - 1, -1, -1):
+        if 'findRegisteredModules' in combined[i] or 'Starting openTCS' in combined[i]:
+            boot_idx = i
+            break
+
+    if boot_idx > 0:
+        recent = combined[boot_idx:]
+        info(f"适配器: 定位到最近一次启动 (第 {boot_idx + 1} 行，之后 {len(recent)} 行)")
+    else:
+        recent = combined[-2000:]
+        info("适配器: 未找到启动标记，使用最近 2000 行")
+
+    # ── 1. 模块加载 ──
+    module_loaded = any('KecongAdapterModule' in l for l in recent)
+    if module_loaded:
+        ok("适配器模块已加载: KecongAdapterModule")
+    else:
+        fail("适配器模块未加载！Kernel 日志中未找到 KecongAdapterModule")
+        fail("  → 检查 kecong-opentcs-adapter-1.0.0.jar 是否在 lib/openTCS-extensions/")
+        return  # 模块没加载，后续检查无意义
+
+    # ── 2. 工厂注册 ──
+    factory_registered = any('KecongCommAdapterFactory' in l for l in recent)
+    if factory_registered:
+        ok("适配器工厂已注册: KecongCommAdapterFactory")
+    else:
+        fail("适配器工厂未注册: KecongCommAdapterFactory")
+        fail("  → JAR 可能已加载但 SPI 配置缺失 (META-INF/services)")
+
+    # ── 3. 适配器 enable / UDP 通道 ──
+    adapter_enabled = any('KecongCommAdapter' in l and ('enable' in l.lower() or 'initializ' in l.lower() or 'connect' in l.lower()) for l in recent)
+    channel_opened = any('opened' in l.lower() and ('Kecong' in l or 'Udp' in l or 'udp' in l) for l in recent)
+    nav_connected = any(('NAV SEND' in l or 'NAV RESULT' in l or 'NAV DISPATCHED' in l or 'pollRobotStatus' in l) for l in recent)
+
+    if nav_connected:
+        # 有 NAV 指令执行记录 → 适配器已成功连接并在工作
+        ok("适配器连接状态: 已连接并在工作 (检测到 NAV 指令执行)")
+    elif channel_opened:
+        # 通道已打开但还没有导航指令
+        info("适配器: UDP 通道已打开，尚未执行导航指令（可能刚启动或 AGV-001 未启用）")
+    elif adapter_enabled:
+        info("适配器: 已尝试启用，但未检测到 UDP 通道打开（可能连接失败）")
+    else:
+        # 检查是否有适配器相关的错误
+        adapter_errors = [l for l in recent if ('Kecong' in l or 'kecong' in l.lower()) and ('ERROR' in l.upper() or 'Exception' in l or 'WARN' in l.upper() or 'fail' in l.lower())]
+        if adapter_errors:
+            fail(f"适配器连接失败，检测到 {len(adapter_errors)} 条相关错误:")
+            for ae in adapter_errors[-3:]:
+                ts_match = re.search(r'\[(\d{8}-\d{2}:\d{2}:\d{2})[,\-\]]', ae)
+                ts = ts_match.group(1) if ts_match else "?"
+                info(f"  [{ts}] ...{ae[-150:]}")
+        else:
+            warn("适配器: 模块已加载但未检测到连接尝试")
+            warn("  → 检查 model.xml 中 AGV-001 的 kecong:navHost/qrHost 属性是否正确")
+            warn("  → 检查 Kernel 配置 kernelapp.autoEnableDriversOnStartup 是否为 true")
+
+    # ── 4. 集成级别 (integrationLevel) ──
+    il_lines = [l for l in recent if 'integrationLevel' in l or 'TO_BE_UTILIZED' in l or 'TO_BE_RESPECTED' in l]
+    if il_lines:
+        # 取最后一条 integrationLevel 日志
+        last_il = il_lines[-1]
+        if 'TO_BE_UTILIZED' in last_il:
+            ok("AGV-001 集成状态: TO_BE_UTILIZED (已就绪)")
+        elif 'TO_BE_RESPECTED' in last_il:
+            warn("AGV-001 集成状态: TO_BE_RESPECTED (已识别但未就绪)")
+            warn("  → 适配器可能未 enable，或 model.xml 中缺少 kecong: 属性")
+        elif 'TO_BE_NOTICED' in last_il:
+            warn("AGV-001 集成状态: TO_BE_NOTICED (仅被检测到)")
+    else:
+        info("日志中未记录 integrationLevel 变化")
+
+    # ── 5. 连接 IP/端口确认 ──
+    ip_logs = [l for l in recent if ('192.168.100' in l or '127.0.0.1' in l) and ('Kecong' in l or 'nav' in l.lower() or 'host' in l.lower() or 'port' in l.lower())]
+    if ip_logs:
+        for ipl in ip_logs[-2:]:
+            ts_match = re.search(r'\[(\d{8}-\d{2}:\d{2}:\d{2})[,\-\]]', ipl)
+            ts = ts_match.group(1) if ts_match else "?"
+            info(f"  [{ts}] ...{ipl[-180:]}")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -560,6 +746,11 @@ def diag_logs() -> bool:
         ("Auth code error", "认证码错误"),
         ("timeout", "超时"),
         ("Unhandled exception", "未处理异常"),
+        ("Connection refused", "连接被拒绝"),
+        ("No route to host", "无法到达主机"),
+        ("Network is unreachable", "网络不可达"),
+        ("KecongUdpChannel", "适配器 UDP 通道异常"),
+        ("providesAdapterFor", "适配器匹配检查"),
     ]
 
     error_counts = {}
@@ -710,6 +901,26 @@ REMEDIATIONS = {
         "如果车辆不可用 → 检查 Kernel 日志中适配器连接状态",
         "可以手动 Withdraw 无法执行的订单释放队列",
     ],
+    "适配器模块未加载": [
+        "检查 kecong-opentcs-adapter-1.0.0.jar 和 kecong-opentcs-protocol-1.0.0.jar 是否存在",
+        f"JAR 文件应位于: {OPENTCS_DIR}/opentcs-kernel/lib/openTCS-extensions/",
+        "如果 JAR 缺失 → 从 commadapters/ 重新构建: cd commadapters/opentcs-commadapter-kc-udp && ./gradlew jar",
+        "将构建产物复制到 Kernel 的 lib/openTCS-extensions/ 目录，重启 Kernel",
+    ],
+    "适配器连接失败": [
+        "检查 Kernel 日志中 adapter enable 相关的错误信息",
+        "确认 model.xml 中 AGV-001 的 kecong:navHost/qrHost IP 地址正确",
+        "确认控制器网络可达 (ping + UDP 0x17)",
+        "检查 Kernel 日志中是否有 authCode 错误 (exec=0xFF)",
+        "重启 Kernel 后观察 adapter 初始化日志",
+    ],
+    "IP不在控制器网段": [
+        "本机 IP 不在 192.168.100.x 网段，无法与控制器通信",
+        "打开 Windows 网络设置 → 以太网属性 → IPv4",
+        "设置静态 IP: 192.168.100.50 (或其他 192.168.100.x 地址)",
+        "子网掩码: 255.255.255.0",
+        "设置后重新运行 doctor.bat 验证",
+    ],
 }
 
 
@@ -726,8 +937,14 @@ def _print_remediation():
         hints.add("UDP超时")
     if "认证码" in report_text or "AUTH" in report_text:
         hints.add("认证码错误")
-    if "IP" in report_text and "不匹配" in report_text:
+    if "IP" in report_text and ("不在" in report_text or "不匹配" in report_text):
         hints.add("模型IP不匹配")
+    if "不在控制器网段" in report_text or "不在.*网段" in report_text:
+        hints.add("IP不在控制器网段")
+    if "适配器模块未加载" in report_text:
+        hints.add("适配器模块未加载")
+    if "适配器连接失败" in report_text or ("适配器" in report_text and "失败" in report_text):
+        hints.add("适配器连接失败")
     if "端口" in report_text and "占用" in report_text:
         hints.add("端口冲突")
     if "缺少点位" in report_text:
@@ -738,7 +955,7 @@ def _print_remediation():
         hints.add("Kernel无响应")
     if "argentina-app" in report_text and "无响应" in report_text:
         hints.add("argentina-app无响应")
-    if "AGV-001" in report_text and ("未找到" in report_text or "不存在" in report_text):
+    if "AGV-001" in report_text and ("未找到 AGV-001" in report_text or "模型中未找到车辆" in report_text):
         hints.add("AGV-001不存在")
     if "积压" in report_text:
         hints.add("订单积压")
