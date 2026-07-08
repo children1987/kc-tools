@@ -7,7 +7,6 @@ switch-env.py — 模拟器 ↔ 实车 一键切换工具
 切换项:
   1. fork_udp.py              controller_ip
   2. kernel model.xml         kecong:navHost / kecong:qrHost
-  3. argentina-app model.xml  kecong:navHost / kecong:qrHost
 
 注意: 认证码 (authCode) 已统一为科聪标准二进制码，模拟器和实车一致，无需切换。
 
@@ -29,11 +28,9 @@ WORKSPACE = SCRIPT_DIR.parent.parent
 # argentina-app
 FORK_UDP_FILE = WORKSPACE / "projects" / "argentina-app" / "app" / "fork_udp.py"
 
-# openTCS 模型文件
-MODEL_FILES = [
-    WORKSPACE / "opentcs-7.3.0-bin" / "opentcs-kernel" / "data" / "model.xml",
-    WORKSPACE / "projects" / "argentina-app" / "model.xml",
-]
+# 模型文件：主副本（git 跟踪），Kernel 加载的是它的同步副本
+MODEL_FILE = WORKSPACE / "projects" / "argentina-app" / "model.xml"
+KERNEL_MODEL_FILE = WORKSPACE / "opentcs-7.3.0-bin" / "opentcs-kernel" / "data" / "model.xml"
 
 # ── 配置常量 ──
 SIM_NAV_HOST = "127.0.0.1"
@@ -80,8 +77,8 @@ def show_status() -> None:
         print(f"  fork_udp.py:  (文件不存在)")
 
     # model files
-    for model_file in MODEL_FILES:
-        _check_model_status(model_file)
+    _check_model_status(MODEL_FILE)
+    _check_model_status(KERNEL_MODEL_FILE)
 
     # 端口检查
     sim_running = _check_port(17804)
@@ -138,9 +135,11 @@ def switch_to(target: str) -> None:
     # ── 1. fork_udp.py ──
     errors += _switch_fork_udp(target)
 
-    # ── 2. 模型文件 ──
-    for model_file in MODEL_FILES:
-        errors += _switch_model_xml(model_file, target)
+    # ── 2. 模型文件（主副本）──
+    errors += _switch_model_xml(MODEL_FILE, target)
+
+    # ── 3. 同步到 Kernel data ──
+    errors += _sync_to_kernel()
 
     # ── 结果汇总 ──
     print("=" * 50)
@@ -216,6 +215,21 @@ def _switch_model_xml(model_file: Path, target: str) -> list[str]:
     if qr_count == 0:
         errors.append(f"{fname}: 未找到 kecong:qrHost 属性")
 
+    return errors
+
+
+def _sync_to_kernel() -> list[str]:
+    """将主副本同步到 Kernel data 目录。"""
+    errors: list[str] = []
+    if not MODEL_FILE.exists():
+        errors.append(f"主副本不存在: {MODEL_FILE}")
+        return errors
+    try:
+        import shutil
+        shutil.copy2(MODEL_FILE, KERNEL_MODEL_FILE)
+        print(f"  [OK] 已同步 → {KERNEL_MODEL_FILE.name}")
+    except OSError as e:
+        errors.append(f"同步失败: {e}")
     return errors
 
 
