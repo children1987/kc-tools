@@ -129,14 +129,9 @@ def _check_port(port: int) -> bool:
 def switch_to(target: str) -> None:
     """执行完整切换。"""
     target_name = "实车 (Real Vehicle)" if target == "real" else "模拟器 (Simulator)"
-    now = detect_mode()
 
     print(f"\n切换到: {target_name}")
     print("=" * 50)
-
-    if now == target:
-        print(f"  [INFO] 当前已是 {target_name} 模式，无需切换\n")
-        return
 
     errors: list[str] = []
 
