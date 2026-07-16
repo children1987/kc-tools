@@ -23,6 +23,17 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from datetime import datetime
 
+# 启用 Windows 控制台 ANSI/VT 转义序列处理（否则颜色代码显示为乱码 [1m [96m 等）
+if sys.platform == "win32":
+    import ctypes
+    _kernel32 = ctypes.windll.kernel32
+    _STD_OUTPUT_HANDLE = -11
+    _ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+    _handle = _kernel32.GetStdHandle(_STD_OUTPUT_HANDLE)
+    _mode = ctypes.c_uint32()
+    _kernel32.GetConsoleMode(_handle, ctypes.byref(_mode))
+    _kernel32.SetConsoleMode(_handle, _mode.value | _ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+
 # ═══════════════════════════════════════════════════════════════════════
 # 协议层（与 kc-inspect.py 保持一致）
 # ═══════════════════════════════════════════════════════════════════════
@@ -981,14 +992,14 @@ def main():
     report_path = SCRIPT_DIR / f"doctor-report-{timestamp}.txt"
 
     # 报告头
-    REPORT_LINES.append("阿根廷项目 — 现场诊断报告 (Doctor)")
+    REPORT_LINES.append("现场诊断报告 (Doctor)")
     REPORT_LINES.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     REPORT_LINES.append(f"计算机名: {socket.gethostname()}")
     REPORT_LINES.append("=" * 60)
 
     # 控制台头
     print(color("=" * 60, 'B'))
-    print(color("  阿根廷项目 — 现场诊断工具 (Doctor)", 'B'))
+    print(color("  现场诊断工具 (Doctor)", 'B'))
     print(color(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 'B'))
     print(color("=" * 60, 'B'))
 
