@@ -116,19 +116,53 @@ EXEC_CODES = {
 # ═══════════════════════════════════════════════════════════════════════
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-WORKSPACE = SCRIPT_DIR.parent.parent
 
 
 def find_opentcs_dir():
-    """自动发现 opentcs-X.Y.Z-bin 目录。"""
-    candidates = sorted(WORKSPACE.glob("opentcs-*-bin"), reverse=True)
-    for c in candidates:
-        if (c / "opentcs-kernel" / "data" / "model.xml").exists():
-            return c
+    """自动发现 opentcs-X.Y.Z-bin 目录。
+
+    搜索顺序:
+      1. 环境变量 OPENTCS_HOME（如设置）
+      2. 从脚本所在目录向上搜索（最多 5 层）
+      3. 从当前工作目录向上搜索
+    """
+    # 1. 环境变量
+    env_home = os.environ.get("OPENTCS_HOME")
+    if env_home:
+        p = Path(env_home)
+        if (p / "opentcs-kernel" / "data" / "model.xml").exists():
+            return p
+
+    # 2. 从脚本目录向上搜索
+    for start in [SCRIPT_DIR, Path.cwd()]:
+        current = start
+        for _ in range(6):
+            # 检查当前目录本身
+            if (current / "opentcs-kernel" / "data" / "model.xml").exists():
+                return current
+            # 检查当前目录下的 opentcs-*-bin 子目录
+            candidates = sorted(current.glob("opentcs-*-bin"), reverse=True)
+            for c in candidates:
+                if (c / "opentcs-kernel" / "data" / "model.xml").exists():
+                    return c
+            current = current.parent
     return None
 
 
 OPENTCS_DIR = find_opentcs_dir()
+
+# 工作区根目录：优先从 OPENTCS_DIR 推导（它的父目录通常就是工作区），
+# 否则从脚本目录向上查找包含 opentcs/ 或 commadapters/ 等标志性目录的祖先
+if OPENTCS_DIR:
+    WORKSPACE = OPENTCS_DIR.parent
+else:
+    _ws = SCRIPT_DIR
+    for _ in range(6):
+        if ((_ws / "opentcs").is_dir() and (_ws / "commadapters").is_dir()) or \
+           (_ws / "opentcs-kernel").is_dir():
+            break
+        _ws = _ws.parent
+    WORKSPACE = _ws
 
 FORK_UDP_FILE = WORKSPACE / "projects" / "argentina-app" / "app" / "fork_udp.py"
 MODEL_FILE = WORKSPACE / "projects" / "argentina-app" / "model.xml"
